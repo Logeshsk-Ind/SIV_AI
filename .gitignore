@@ -216,3 +216,16 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+# KLA datasets
+train.zip
+Test_NoisyLR.zip
+data/raw/
+
+# NumPy dataset files
+*.npy
+*.npz
+
+# Generated results
+outputs/
+# Model checkpoints
+checkpoints/

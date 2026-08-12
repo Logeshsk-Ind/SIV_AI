@@ -1,0 +1,69 @@
+SIV-AI Day 2 Baseline Experiment
+================================
+
+Date:
+11-Aug-2026
+
+Dataset:
+KLA training dataset
+
+Dataset size:
+3200 samples
+
+Input:
+1 x 128 x 128
+
+Ground Truth:
+1 x 256 x 256
+
+Model:
+BaselineSR
+
+Architecture:
+3 convolutional feature extraction layers
+PixelShuffle x2 upsampling
+Output convolution
+
+Loss:
+L1 Loss
+
+Optimizer:
+Adam
+
+Learning Rate:
+1e-4
+
+Batch Size:
+4
+
+Epochs:
+3
+
+Device:
+NVIDIA GeForce RTX 2050
+
+Training Loss:
+Epoch 1: 0.321879
+Epoch 2: 0.262104
+Epoch 3: 0.215220
+
+Best Training Loss:
+0.215220
+
+Checkpoint:
+checkpoints/baseline_day2_best.pth
+
+Evaluation Sample:
+000000
+
+PSNR:
+15.9506 dB
+
+SSIM:
+0.7307
+
+Output:
+outputs/day2_baseline/
+
+Status:
+Baseline successfully trained and evaluated.
