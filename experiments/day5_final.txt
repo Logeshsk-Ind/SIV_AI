@@ -1,0 +1,67 @@
+SIV-AI DAY 5 FINAL INTEGRATION
+==============================
+
+Final model:
+ResidualSR
+
+Checkpoint:
+checkpoints/residual_day4_best.pth
+
+Architecture:
+Residual super-resolution CNN
+
+Number of residual blocks:
+5
+
+Input:
+1-channel grayscale SEM image
+128 x 128
+
+Output:
+1-channel restored SEM image
+256 x 256
+
+Dataset:
+KLA dataset
+
+Total samples:
+3200
+
+Training samples:
+2560
+
+Validation samples:
+640
+
+Validation split:
+20%
+
+Random seed:
+42
+
+Day 2 Baseline:
+PSNR: 24.9054 dB
+SSIM: 0.6828
+
+Day 3 Fine-tuned Baseline:
+PSNR: 25.1189 dB
+SSIM: 0.7029
+
+Day 4 ResidualSR:
+PSNR: 27.4775 dB
+SSIM: 0.7250
+
+Day 4 validation loss:
+0.03384174306411296
+
+Final model checkpoint:
+residual_day4_best.pth
+
+Final inference:
+Successfully generated restored image.
+
+Final output:
+outputs/day5_final/restored.png
+
+Final comparison:
+outputs/final_comparison/final_comparison.png
