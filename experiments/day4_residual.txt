@@ -1,0 +1,68 @@
+SIV-AI
+Day 4 Residual Super-Resolution Experiment
+============================================
+
+Model:
+ResidualSR
+
+Architecture:
+- Input: 1 channel
+- Feature channels: 64
+- Residual blocks: 5
+- 2x PixelShuffle upsampling
+- Output: 1 channel
+
+Dataset:
+KLA SEM dataset
+
+Total samples:
+3200
+
+Training samples:
+2560
+
+Validation samples:
+640
+
+Validation split:
+20%
+
+Random seed:
+42
+
+Batch size:
+4
+
+Epochs:
+3
+
+Learning rate:
+1e-4
+
+Loss:
+L1Loss
+
+Initialization:
+Training from scratch
+
+Checkpoint:
+checkpoints/residual_day4_best.pth
+
+
+Day 2 Baseline:
+PSNR: 24.9054 dB
+SSIM: 0.6828
+
+
+Day 3 Baseline:
+PSNR: 25.1189 dB
+SSIM: 0.7029
+
+
+Day 4 ResidualSR:
+PSNR: [FILL AFTER EVALUATION]
+SSIM: [FILL AFTER EVALUATION]
+
+
+Conclusion:
+[Fill after evaluation]
