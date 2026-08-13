@@ -1,0 +1,35 @@
+SIV-AI Day 3 Baseline Dataset Evaluation
+=========================================
+
+Dataset:
+KLA train/train
+
+Total samples:
+3200
+
+Validation split:
+20%
+
+Validation samples:
+640
+
+Seed:
+42
+
+Model:
+BaselineSR
+
+Checkpoint:
+baseline_day2_best.pth
+
+Device:
+NVIDIA GeForce RTX 2050
+
+Evaluation:
+Mean PSNR = 24.9053 dB
+Mean SSIM = 0.6828
+
+IMPORTANT:
+The Day 2 checkpoint was trained using all 3200 samples.
+Therefore this evaluation is diagnostic only and is NOT a
+strict held-out validation benchmark.
