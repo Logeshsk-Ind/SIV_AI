@@ -229,3 +229,9 @@ data/raw/
 outputs/
 # Model checkpoints
 checkpoints/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.vscode/
+.env

@@ -1,406 +1,232 @@
 from pathlib import Path
-import sys
-
+import argparse
+import csv
 import numpy as np
 import torch
-from torch.utils.data import DataLoader, Subset
-from skimage.metrics import peak_signal_noise_ratio
-from skimage.metrics import structural_similarity
+from PIL import Image
+from skimage.metrics import peak_signal_noise_ratio, structural_similarity
+import lpips
 
 
-# ============================================================
-# PROJECT ROOT
-# ============================================================
+def load_gt(path):
+    x = np.load(path).astype(np.float32)
 
-ROOT = Path(__file__).resolve().parents[1]
+    if x.ndim == 3:
+        x = np.squeeze(x)
 
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+    if x.ndim != 2:
+        raise ValueError(f"GT must be 2D, got {x.shape}")
 
-
-# ============================================================
-# IMPORTS
-# ============================================================
-
-from src.data.kla_dataset import KLADataset
-from src.models.siv_ai_phase4 import SIVAI
+    return x
 
 
-# ============================================================
-# CONFIG
-# ============================================================
-
-DATA_DIR = ROOT / "data" / "raw" / "train" / "train"
-
-CHECKPOINT = (
-    ROOT
-    / "phase4_source"
-    / "siv_ai_phase4_weights.pth"
-)
-
-BATCH_SIZE = 4
-
-VAL_RATIO = 0.20
-
-SEED = 42
+def load_output(path):
+    x = np.asarray(Image.open(path).convert("L"), dtype=np.float32)
+    x /= 255.0
+    return x
 
 
-# ============================================================
-# MAIN
-# ============================================================
+def evaluate(gt, pred, lpips_model, device):
+    if gt.shape != pred.shape:
+        pred_img = Image.fromarray(
+            np.clip(pred * 255, 0, 255).astype(np.uint8)
+        ).resize(
+            (gt.shape[1], gt.shape[0]),
+            Image.Resampling.BICUBIC
+        )
+        pred = np.asarray(pred_img, dtype=np.float32) / 255.0
+
+    gt = np.clip(gt, 0, 1)
+    pred = np.clip(pred, 0, 1)
+
+    psnr = peak_signal_noise_ratio(gt, pred, data_range=1.0)
+
+    ssim = structural_similarity(
+        gt,
+        pred,
+        data_range=1.0
+    )
+
+    gt_t = torch.from_numpy(gt)[None, None].repeat(1, 3, 1, 1)
+    pred_t = torch.from_numpy(pred)[None, None].repeat(1, 3, 1, 1)
+
+    gt_t = gt_t.to(device) * 2 - 1
+    pred_t = pred_t.to(device) * 2 - 1
+
+    with torch.no_grad():
+        lp = lpips_model(gt_t, pred_t).item()
+
+    return psnr, ssim, lp
+
 
 def main():
+    parser = argparse.ArgumentParser(
+        description="SIV-AI Phase-4 PSNR / SSIM / LPIPS evaluation"
+    )
 
-    print("=" * 70)
-    print("SIV-AI PHASE 4 DATASET EVALUATION")
-    print("=" * 70)
+    parser.add_argument(
+        "--gt",
+        required=True,
+        help="Directory containing GT .npy files"
+    )
 
-    # --------------------------------------------------------
-    # DEVICE
-    # --------------------------------------------------------
+    parser.add_argument(
+        "--pred",
+        required=True,
+        help="Directory containing restored images"
+    )
+
+    parser.add_argument(
+        "--output",
+        default="results/phase4_metrics.csv",
+        help="CSV output path"
+    )
+
+    args = parser.parse_args()
+
+    gt_dir = Path(args.gt)
+    pred_dir = Path(args.pred)
+    csv_path = Path(args.output)
+
+    if not gt_dir.exists():
+        raise FileNotFoundError(f"GT directory not found: {gt_dir}")
+
+    if not pred_dir.exists():
+        raise FileNotFoundError(f"Prediction directory not found: {pred_dir}")
 
     device = torch.device(
         "cuda" if torch.cuda.is_available() else "cpu"
     )
 
+    print("=" * 70)
+    print("SIV-AI PHASE-4 EVALUATION")
+    print("=" * 70)
     print("Device:", device)
 
     if device.type == "cuda":
-        print(
-            "GPU:",
-            torch.cuda.get_device_name(0)
-        )
-
-    # --------------------------------------------------------
-    # DATASET
-    # --------------------------------------------------------
+        print("GPU:", torch.cuda.get_device_name(0))
 
     print()
-    print("Dataset:")
-    print(DATA_DIR)
+    print("GT directory   :", gt_dir)
+    print("Prediction dir :", pred_dir)
 
-    dataset = KLADataset(DATA_DIR)
+    lpips_model = lpips.LPIPS(net="alex").to(device)
+    lpips_model.eval()
 
-    print("Total samples:", len(dataset))
+    gt_files = {
+        p.stem: p
+        for p in gt_dir.glob("*.npy")
+        if not p.name.startswith("._")
+    }
 
-    if len(dataset) == 0:
+    pred_files = {}
+
+    for p in pred_dir.iterdir():
+        if p.suffix.lower() in {
+            ".png", ".jpg", ".jpeg", ".bmp",
+            ".tif", ".tiff", ".webp"
+        }:
+            pred_files[p.stem.split("_restored")[0]] = p
+
+    common = sorted(set(gt_files) & set(pred_files))
+
+    print()
+    print("GT images       :", len(gt_files))
+    print("Predictions     :", len(pred_files))
+    print("Matched images  :", len(common))
+    print()
+
+    if not common:
         raise RuntimeError(
-            "Dataset is empty. Check DATA_DIR."
+            "No matching GT/prediction files found."
         )
 
-    # --------------------------------------------------------
-    # DETERMINISTIC VALIDATION SPLIT
-    # --------------------------------------------------------
+    results = []
 
-    generator = torch.Generator().manual_seed(SEED)
+    for i, name in enumerate(common, 1):
 
-    indices = torch.randperm(
-        len(dataset),
-        generator=generator
-    ).tolist()
+        try:
+            gt = load_gt(gt_files[name])
+            pred = load_output(pred_files[name])
 
-    val_size = int(
-        len(dataset) * VAL_RATIO
-    )
-
-    val_indices = indices[-val_size:]
-
-    val_dataset = Subset(
-        dataset,
-        val_indices
-    )
-
-    print(
-        "Validation samples:",
-        len(val_dataset)
-    )
-
-    # --------------------------------------------------------
-    # DATALOADER
-    # --------------------------------------------------------
-
-    loader = DataLoader(
-        val_dataset,
-        batch_size=BATCH_SIZE,
-        shuffle=False,
-        num_workers=0,
-        pin_memory=(device.type == "cuda"),
-    )
-
-    # --------------------------------------------------------
-    # MODEL
-    # --------------------------------------------------------
-
-    print()
-    print("Creating Phase-4 model...")
-
-    model = SIVAI().to(device)
-
-    params = sum(
-        p.numel()
-        for p in model.parameters()
-    )
-
-    print(
-        "Model parameters:",
-        params
-    )
-
-    assert params == 110049, (
-        f"Wrong architecture! "
-        f"Expected 110049, got {params}"
-    )
-
-    # --------------------------------------------------------
-    # CHECKPOINT
-    # --------------------------------------------------------
-
-    print()
-    print("Loading checkpoint:")
-    print(CHECKPOINT)
-
-    state_dict = torch.load(
-        CHECKPOINT,
-        map_location=device
-    )
-
-    print(
-        "Checkpoint tensors:",
-        len(state_dict)
-    )
-
-    model.load_state_dict(
-        state_dict,
-        strict=True
-    )
-
-    print(
-        "Checkpoint loaded successfully."
-    )
-
-    # --------------------------------------------------------
-    # EVALUATION
-    # --------------------------------------------------------
-
-    model.eval()
-
-    psnr_values = []
-    ssim_values = []
-
-    global_mse_sum = 0.0
-    global_pixel_count = 0
-
-    # --------------------------------------------------------
-    # INFERENCE
-    # --------------------------------------------------------
-
-    with torch.no_grad():
-
-        for batch_idx, batch in enumerate(loader):
-
-            noisy = batch["noisy"].to(
-                device,
-                non_blocking=True
+            psnr, ssim, lp = evaluate(
+                gt,
+                pred,
+                lpips_model,
+                device
             )
 
-            gt = batch["gt"].to(
-                device,
-                non_blocking=True
+            results.append(
+                [name, psnr, ssim, lp]
             )
 
-            # ------------------------------------------------
-            # MODEL
-            # ------------------------------------------------
-
-            prediction = model(noisy)
-
-            # ------------------------------------------------
-            # CLAMP FOR METRICS
-            # ------------------------------------------------
-
-            prediction = prediction.clamp(
-                0.0,
-                1.0
+            print(
+                f"[{i:4d}/{len(common)}] "
+                f"{name}  "
+                f"PSNR={psnr:7.3f}  "
+                f"SSIM={ssim:.5f}  "
+                f"LPIPS={lp:.5f}"
             )
 
-            # ------------------------------------------------
-            # GLOBAL MSE
-            # ------------------------------------------------
+        except Exception as e:
+            print(f"[SKIP] {name}: {e}")
 
-            diff = prediction - gt
+    if not results:
+        raise RuntimeError("No images were successfully evaluated.")
 
-            global_mse_sum += (
-                diff.pow(2)
-                .sum()
-                .item()
-            )
-
-            global_pixel_count += (
-                gt.numel()
-            )
-
-            # ------------------------------------------------
-            # CPU FOR SSIM / PSNR
-            # ------------------------------------------------
-
-            prediction_np = (
-                prediction
-                .cpu()
-                .numpy()
-            )
-
-            gt_np = (
-                gt
-                .cpu()
-                .numpy()
-            )
-
-            # ------------------------------------------------
-            # PER IMAGE METRICS
-            # ------------------------------------------------
-
-            for pred, target in zip(
-                prediction_np,
-                gt_np
-            ):
-
-                pred_image = pred[0]
-
-                target_image = target[0]
-
-                psnr = peak_signal_noise_ratio(
-                    target_image,
-                    pred_image,
-                    data_range=1.0
-                )
-
-                ssim = structural_similarity(
-                    target_image,
-                    pred_image,
-                    data_range=1.0
-                )
-
-                psnr_values.append(
-                    psnr
-                )
-
-                ssim_values.append(
-                    ssim
-                )
-
-            # ------------------------------------------------
-            # PROGRESS
-            # ------------------------------------------------
-
-            processed = min(
-                (batch_idx + 1) * BATCH_SIZE,
-                len(val_dataset)
-            )
-
-            if processed % 100 == 0:
-                print(
-                    f"Processed "
-                    f"{processed}/"
-                    f"{len(val_dataset)}"
-                )
-
-    # ========================================================
-    # RESULTS
-    # ========================================================
-
-    mean_psnr = float(
-        np.mean(psnr_values)
+    arr = np.asarray(
+        [r[1:] for r in results],
+        dtype=np.float64
     )
 
-    mean_ssim = float(
-        np.mean(ssim_values)
+    mean_psnr = arr[:, 0].mean()
+    mean_ssim = arr[:, 1].mean()
+    mean_lpips = arr[:, 2].mean()
+
+    csv_path.parent.mkdir(
+        parents=True,
+        exist_ok=True
     )
 
-    global_mse = (
-        global_mse_sum
-        / global_pixel_count
-    )
+    with open(
+        csv_path,
+        "w",
+        newline="",
+        encoding="utf-8"
+    ) as f:
 
-    global_psnr = (
-        10.0
-        * np.log10(
-            1.0 / global_mse
-        )
-    )
+        writer = csv.writer(f)
 
-    # ========================================================
-    # PRINT
-    # ========================================================
+        writer.writerow([
+            "image",
+            "PSNR_dB",
+            "SSIM",
+            "LPIPS"
+        ])
+
+        writer.writerows(results)
+
+        writer.writerow([])
+        writer.writerow([
+            "MEAN",
+            mean_psnr,
+            mean_ssim,
+            mean_lpips
+        ])
 
     print()
     print("=" * 70)
-    print("SIV-AI PHASE 4 RESULTS")
+    print("PHASE-4 RESULTS")
     print("=" * 70)
-
-    print(
-        f"Validation samples : {len(val_dataset)}"
-    )
-
-    print(
-        f"Mean PSNR           : {mean_psnr:.4f} dB"
-    )
-
-    print(
-        f"Global PSNR         : {global_psnr:.4f} dB"
-    )
-
-    print(
-        f"Mean SSIM           : {mean_ssim:.4f}"
-    )
-
-    print(
-        f"Global MSE          : {global_mse:.8f}"
-    )
-
-    print("=" * 70)
-
-    # ========================================================
-    # COMPARE WITH COLAB CHECKPOINT METADATA
-    # ========================================================
-
+    print(f"Images evaluated : {len(results)}")
+    print(f"Mean PSNR        : {mean_psnr:.4f} dB")
+    print(f"Mean SSIM        : {mean_ssim:.6f}")
+    print(f"Mean LPIPS       : {mean_lpips:.6f}")
     print()
-    print("COLAB PHASE-4 REFERENCE")
-    print("-" * 70)
-
-    print(
-        "Best Global PSNR : 25.142849"
-    )
-
-    print(
-        "Best Mean PSNR   : 27.873514"
-    )
-
-    print(
-        "Best SSIM        : 0.761343"
-    )
-
-    print()
-    print("VS CODE EVALUATION")
-    print("-" * 70)
-
-    print(
-        f"Mean PSNR        : {mean_psnr:.6f}"
-    )
-
-    print(
-        f"Global PSNR      : {global_psnr:.6f}"
-    )
-
-    print(
-        f"SSIM             : {mean_ssim:.6f}"
-    )
-
+    print("CSV saved to:")
+    print(csv_path)
     print("=" * 70)
 
-
-# ============================================================
-# ENTRY POINT
-# ============================================================
 
 if __name__ == "__main__":
     main()
