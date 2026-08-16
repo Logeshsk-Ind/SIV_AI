@@ -1,6 +1,7 @@
 from pathlib import Path
 import sys
 import time
+import os
 
 import torch
 
@@ -17,6 +18,8 @@ from fastapi.responses import (
 )
 
 from fastapi.staticfiles import StaticFiles
+
+from fastapi.middleware.cors import CORSMiddleware
 
 from pydantic import BaseModel
 
@@ -101,6 +104,34 @@ app = FastAPI(
         "Semiconductor Inspection and Verification AI"
     ),
     version="1.0.0",
+)
+
+
+# ============================================================
+# CORS
+# ============================================================
+
+app.add_middleware(
+    CORSMiddleware,
+
+    allow_origins=[
+        "https://logeshsk-ind.github.io",
+        "https://logeshsk-ind.github.io/SIV_AI",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+        "http://localhost:5500",
+        "http://127.0.0.1:5500",
+    ],
+
+    allow_credentials=False,
+
+    allow_methods=[
+        "*"
+    ],
+
+    allow_headers=[
+        "*"
+    ],
 )
 
 
@@ -245,7 +276,7 @@ async def health():
             "256x256",
 
         "checkpoint":
-            "model/siv_ai_phase4_weights.pth",
+            "siv_ai_phase4_best.pth",
 
         "inference":
             "inference/infer_phase4.py",
@@ -456,6 +487,7 @@ async def restore_image(
 
         print()
         print("INFERENCE ERROR:")
+
         print(
             repr(exc)
         )
@@ -594,20 +626,29 @@ async def restore_image(
                     + '"'
                 ),
 
-           "X-SIV-AI-Runtime":
-    f"{elapsed:.4f}",
+            "X-SIV-AI-Runtime":
+                f"{elapsed:.4f}",
 
-"X-SIV-AI-PSNR":
-    "27.9101",
+            "X-SIV-AI-PSNR":
+                "27.9101",
 
-"X-SIV-AI-SSIM":
-    "0.7530",
+            "X-SIV-AI-SSIM":
+                "0.7530",
 
-"X-SIV-AI-Input":
-    "128x128",
+            "X-SIV-AI-Input":
+                "128x128",
 
-"X-SIV-AI-Output":
-    "256x256",
+            "X-SIV-AI-Output":
+                "256x256",
+
+            "Access-Control-Expose-Headers":
+                (
+                    "X-SIV-AI-Runtime, "
+                    "X-SIV-AI-PSNR, "
+                    "X-SIV-AI-SSIM, "
+                    "X-SIV-AI-Input, "
+                    "X-SIV-AI-Output"
+                ),
 
         }
 
@@ -737,13 +778,20 @@ if __name__ == "__main__":
 
     import uvicorn
 
+    port = int(
+        os.environ.get(
+            "PORT",
+            "8001"
+        )
+    )
+
     uvicorn.run(
 
         "app.main:app",
 
-        host="127.0.0.1",
+        host="0.0.0.0",
 
-        port=8001,
+        port=port,
 
         reload=False
 

@@ -71,83 +71,126 @@ document.addEventListener("DOMContentLoaded", () => {
     ===================================================== */
 
     let selectedFile = null;
+
     let restoredBlob = null;
+
     let restoredURL = null;
+
+
+    /* =====================================================
+       CHECK REQUIRED ELEMENTS
+    ===================================================== */
+
+    if (!uploadArea) {
+        console.error("SIV-AI: uploadArea not found.");
+        return;
+    }
+
+    if (!imageInput) {
+        console.error("SIV-AI: imageInput not found.");
+        return;
+    }
+
+    if (!restoreButton) {
+        console.error("SIV-AI: restoreButton not found.");
+        return;
+    }
 
 
     /* =====================================================
        OPEN FILE SELECTOR
     ===================================================== */
 
-    uploadArea.addEventListener("click", () => {
+    uploadArea.addEventListener(
+        "click",
+        () => {
 
-        imageInput.click();
+            imageInput.click();
 
-    });
+        }
+    );
 
 
     /* =====================================================
        FILE SELECTED
     ===================================================== */
 
-    imageInput.addEventListener("change", (event) => {
+    imageInput.addEventListener(
+        "change",
+        (event) => {
 
-        const file =
-            event.target.files[0];
+            const file =
+                event.target.files[0];
 
-        if (file) {
+            if (file) {
 
-            handleFile(file);
+                handleFile(file);
+
+            }
 
         }
-
-    });
+    );
 
 
     /* =====================================================
        DRAG ENTER
     ===================================================== */
 
-    uploadArea.addEventListener("dragover", (event) => {
+    uploadArea.addEventListener(
+        "dragover",
+        (event) => {
 
-        event.preventDefault();
+            event.preventDefault();
 
-        uploadArea.classList.add("dragging");
+            uploadArea.classList.add(
+                "dragging"
+            );
 
-    });
+        }
+    );
 
 
     /* =====================================================
        DRAG LEAVE
     ===================================================== */
 
-    uploadArea.addEventListener("dragleave", () => {
+    uploadArea.addEventListener(
+        "dragleave",
+        () => {
 
-        uploadArea.classList.remove("dragging");
+            uploadArea.classList.remove(
+                "dragging"
+            );
 
-    });
+        }
+    );
 
 
     /* =====================================================
        DROP
     ===================================================== */
 
-    uploadArea.addEventListener("drop", (event) => {
+    uploadArea.addEventListener(
+        "drop",
+        (event) => {
 
-        event.preventDefault();
+            event.preventDefault();
 
-        uploadArea.classList.remove("dragging");
+            uploadArea.classList.remove(
+                "dragging"
+            );
 
-        const file =
-            event.dataTransfer.files[0];
+            const file =
+                event.dataTransfer.files[0];
 
-        if (file) {
+            if (file) {
 
-            handleFile(file);
+                handleFile(file);
+
+            }
 
         }
-
-    });
+    );
 
 
     /* =====================================================
@@ -158,17 +201,32 @@ document.addEventListener("DOMContentLoaded", () => {
 
         selectedFile = file;
 
-        inputFileName.textContent =
-            file.name.toUpperCase();
+
+        /* -------------------------------------------------
+           FILE NAME
+        ------------------------------------------------- */
+
+        if (inputFileName) {
+
+            inputFileName.textContent =
+                file.name.toUpperCase();
+
+        }
+
+
+        /* -------------------------------------------------
+           ENABLE RESTORE
+        ------------------------------------------------- */
 
         restoreButton.disabled = false;
 
 
-        /*
-         * Browser preview for normal image files.
-         */
+        /* -------------------------------------------------
+           IMAGE PREVIEW
+        ------------------------------------------------- */
 
         if (
+            file.type &&
             file.type.startsWith("image/")
         ) {
 
@@ -177,70 +235,128 @@ document.addEventListener("DOMContentLoaded", () => {
 
             reader.onload = (event) => {
 
-                inputPreview.src =
-                    event.target.result;
+                if (inputPreview) {
 
-                inputPreview.classList.remove(
-                    "hidden"
-                );
+                    inputPreview.src =
+                        event.target.result;
 
-                uploadContent.classList.add(
-                    "hidden"
-                );
+                    inputPreview.classList.remove(
+                        "hidden"
+                    );
+
+                }
+
+                if (uploadContent) {
+
+                    uploadContent.classList.add(
+                        "hidden"
+                    );
+
+                }
 
             };
 
             reader.readAsDataURL(file);
 
-        } else {
+        }
 
-            /*
-             * NPY file.
-             */
+        else {
 
-            inputPreview.classList.add(
-                "hidden"
-            );
+            /* ---------------------------------------------
+               NPY FILE
+            --------------------------------------------- */
 
-            uploadContent.classList.remove(
-                "hidden"
-            );
+            if (inputPreview) {
 
-            uploadContent.innerHTML = `
-                <div class="upload-icon">✓</div>
-                <strong>NPY FILE SELECTED</strong>
-                <span>${file.name}</span>
-            `;
+                inputPreview.classList.add(
+                    "hidden"
+                );
+
+                inputPreview.src = "";
+
+            }
+
+            if (uploadContent) {
+
+                uploadContent.classList.remove(
+                    "hidden"
+                );
+
+                uploadContent.innerHTML = `
+                    <div class="upload-icon">✓</div>
+                    <strong>NPY FILE SELECTED</strong>
+                    <span>${escapeHTML(file.name)}</span>
+                `;
+
+            }
 
         }
 
 
-        /*
-         * Reset previous result.
-         */
+        /* -------------------------------------------------
+           RESET OUTPUT
+        ------------------------------------------------- */
 
-        outputPreview.classList.add(
-            "hidden"
-        );
+        if (outputPreview) {
 
-        outputPreview.src = "";
+            outputPreview.classList.add(
+                "hidden"
+            );
 
-        waitingText.classList.remove(
-            "hidden"
-        );
+            outputPreview.src = "";
 
-        loader.classList.add(
-            "hidden"
-        );
+        }
 
-        resultPanel.classList.add(
-            "hidden"
-        );
 
-        downloadButton.disabled = true;
+        if (outputPlaceholder) {
+
+            outputPlaceholder.classList.remove(
+                "hidden"
+            );
+
+        }
+
+
+        if (waitingText) {
+
+            waitingText.classList.remove(
+                "hidden"
+            );
+
+        }
+
+
+        if (loader) {
+
+            loader.classList.add(
+                "hidden"
+            );
+
+        }
+
+
+        if (resultPanel) {
+
+            resultPanel.classList.add(
+                "hidden"
+            );
+
+        }
+
+
+        if (downloadButton) {
+
+            downloadButton.disabled = true;
+
+        }
+
 
         restoredBlob = null;
 
+
+        /* -------------------------------------------------
+           RELEASE OLD OBJECT URL
+        ------------------------------------------------- */
 
         if (restoredURL) {
 
@@ -263,6 +379,10 @@ document.addEventListener("DOMContentLoaded", () => {
         "click",
         async () => {
 
+            /* ------------------------------------------------
+               VALIDATE FILE
+            ------------------------------------------------ */
+
             if (!selectedFile) {
 
                 alert(
@@ -274,34 +394,68 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
 
-            /* ---------------------------------------------
+            /* ------------------------------------------------
                UI: LOADING
-            --------------------------------------------- */
+            ------------------------------------------------ */
 
             restoreButton.disabled = true;
 
-            waitingText.classList.add(
-                "hidden"
-            );
 
-            outputPreview.classList.add(
-                "hidden"
-            );
+            if (waitingText) {
 
-            loader.classList.remove(
-                "hidden"
-            );
+                waitingText.classList.add(
+                    "hidden"
+                );
 
-            resultPanel.classList.add(
-                "hidden"
-            );
-
-            downloadButton.disabled = true;
+            }
 
 
-            /* ---------------------------------------------
+            if (outputPlaceholder) {
+
+                outputPlaceholder.classList.add(
+                    "hidden"
+                );
+
+            }
+
+
+            if (outputPreview) {
+
+                outputPreview.classList.add(
+                    "hidden"
+                );
+
+            }
+
+
+            if (loader) {
+
+                loader.classList.remove(
+                    "hidden"
+                );
+
+            }
+
+
+            if (resultPanel) {
+
+                resultPanel.classList.add(
+                    "hidden"
+                );
+
+            }
+
+
+            if (downloadButton) {
+
+                downloadButton.disabled = true;
+
+            }
+
+
+            /* ------------------------------------------------
                FORM DATA
-            --------------------------------------------- */
+            ------------------------------------------------ */
 
             const formData =
                 new FormData();
@@ -318,9 +472,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
             try {
 
-                /* -----------------------------------------
-                   SEND TO RENDER FASTAPI BACKEND
-                ----------------------------------------- */
+                /* --------------------------------------------
+                   SEND TO RENDER BACKEND
+                -------------------------------------------- */
+
+                console.log(
+                    "Sending image to:",
+                    `${BACKEND_URL}/api/restore`
+                );
+
 
                 const response =
                     await fetch(
@@ -332,21 +492,24 @@ document.addEventListener("DOMContentLoaded", () => {
                     );
 
 
-                /* -----------------------------------------
-                   ERROR HANDLING
-                ----------------------------------------- */
+                /* --------------------------------------------
+                   HTTP ERROR
+                -------------------------------------------- */
 
                 if (!response.ok) {
 
                     let message =
-                        "Restoration failed.";
+                        `Restoration failed (${response.status}).`;
+
 
                     try {
 
                         const errorData =
                             await response.json();
 
+
                         if (
+                            errorData &&
                             errorData.detail
                         ) {
 
@@ -355,13 +518,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
                         }
 
-                    } catch (_) {
+                    }
 
-                        /*
-                         * Response was not JSON.
-                         */
+                    catch (_) {
+
+                        /* Response was not JSON. */
 
                     }
+
 
                     throw new Error(
                         message
@@ -370,19 +534,21 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
 
 
-                /* -----------------------------------------
-                   READ RESPONSE HEADERS
-                ----------------------------------------- */
+                /* --------------------------------------------
+                   RESPONSE HEADERS
+                -------------------------------------------- */
 
                 const runtimeHeader =
                     response.headers.get(
                         "X-SIV-AI-Runtime"
                     );
 
+
                 const psnrHeader =
                     response.headers.get(
                         "X-SIV-AI-PSNR"
                     );
+
 
                 const ssimHeader =
                     response.headers.get(
@@ -390,20 +556,61 @@ document.addEventListener("DOMContentLoaded", () => {
                     );
 
 
-                /* -----------------------------------------
-                   GET RESTORED IMAGE
-                ----------------------------------------- */
+                const inputSizeHeader =
+                    response.headers.get(
+                        "X-SIV-AI-Input"
+                    );
+
+
+                const outputSizeHeader =
+                    response.headers.get(
+                        "X-SIV-AI-Output"
+                    );
+
+
+                console.log(
+                    "PSNR header:",
+                    psnrHeader
+                );
+
+                console.log(
+                    "SSIM header:",
+                    ssimHeader
+                );
+
+                console.log(
+                    "Runtime header:",
+                    runtimeHeader
+                );
+
+
+                /* --------------------------------------------
+                   GET RESTORED PNG
+                -------------------------------------------- */
 
                 const blob =
                     await response.blob();
+
+
+                if (
+                    !blob ||
+                    blob.size === 0
+                ) {
+
+                    throw new Error(
+                        "Backend returned an empty image."
+                    );
+
+                }
+
 
                 restoredBlob =
                     blob;
 
 
-                /* -----------------------------------------
+                /* --------------------------------------------
                    CREATE PREVIEW URL
-                ----------------------------------------- */
+                -------------------------------------------- */
 
                 if (restoredURL) {
 
@@ -413,31 +620,50 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 }
 
+
                 restoredURL =
                     URL.createObjectURL(
                         blob
                     );
 
-                outputPreview.src =
-                    restoredURL;
+
+                if (outputPreview) {
+
+                    outputPreview.src =
+                        restoredURL;
+
+                }
 
 
-                /* -----------------------------------------
-                   SHOW OUTPUT
-                ----------------------------------------- */
+                /* --------------------------------------------
+                   STOP LOADER
+                -------------------------------------------- */
 
-                loader.classList.add(
-                    "hidden"
-                );
+                if (loader) {
 
-                outputPreview.classList.remove(
-                    "hidden"
-                );
+                    loader.classList.add(
+                        "hidden"
+                    );
+
+                }
 
 
-                /* -----------------------------------------
-                   METRICS
-                ----------------------------------------- */
+                /* --------------------------------------------
+                   SHOW RESTORED IMAGE
+                -------------------------------------------- */
+
+                if (outputPreview) {
+
+                    outputPreview.classList.remove(
+                        "hidden"
+                    );
+
+                }
+
+
+                /* --------------------------------------------
+                   RUNTIME
+                -------------------------------------------- */
 
                 const measuredRuntime =
                     (
@@ -451,51 +677,81 @@ document.addEventListener("DOMContentLoaded", () => {
                     measuredRuntime.toFixed(4);
 
 
-                /*
-                 * IMPORTANT:
-                 * Do not fake PSNR/SSIM when the backend
-                 * does not return them.
-                 */
+                /* --------------------------------------------
+                   PSNR
+                -------------------------------------------- */
 
-                psnrValue.textContent =
-                    psnrHeader
-                        ? `${psnrHeader} dB`
-                        : "N/A";
+                if (psnrValue) {
 
+                    psnrValue.textContent =
+                        psnrHeader
+                            ? `${psnrHeader} dB`
+                            : "N/A";
 
-                ssimValue.textContent =
-                    ssimHeader
-                        ? ssimHeader
-                        : "N/A";
+                }
 
 
-                runtimeValue.textContent =
-                    `${runtime} s`;
+                /* --------------------------------------------
+                   SSIM
+                -------------------------------------------- */
+
+                if (ssimValue) {
+
+                    ssimValue.textContent =
+                        ssimHeader
+                            ? ssimHeader
+                            : "N/A";
+
+                }
 
 
-                /* -----------------------------------------
+                /* --------------------------------------------
+                   RUNTIME
+                -------------------------------------------- */
+
+                if (runtimeValue) {
+
+                    runtimeValue.textContent =
+                        `${runtime} s`;
+
+                }
+
+
+                /* --------------------------------------------
                    SHOW RESULT PANEL
-                ----------------------------------------- */
+                -------------------------------------------- */
 
-                resultPanel.classList.remove(
-                    "hidden"
-                );
+                if (resultPanel) {
+
+                    resultPanel.classList.remove(
+                        "hidden"
+                    );
+
+                }
 
 
-                /* -----------------------------------------
+                /* --------------------------------------------
                    ENABLE DOWNLOAD
-                ----------------------------------------- */
+                -------------------------------------------- */
 
-                downloadButton.disabled =
-                    false;
+                if (downloadButton) {
+
+                    downloadButton.disabled =
+                        false;
+
+                }
 
 
-                /* -----------------------------------------
-                   CONSOLE
-                ----------------------------------------- */
+                /* --------------------------------------------
+                   SUCCESS LOG
+                -------------------------------------------- */
 
                 console.log(
-                    "SIV-AI restoration complete"
+                    "===================================="
+                );
+
+                console.log(
+                    "SIV-AI RESTORATION COMPLETE"
                 );
 
                 console.log(
@@ -504,22 +760,39 @@ document.addEventListener("DOMContentLoaded", () => {
                 );
 
                 console.log(
+                    "Input:",
+                    inputSizeHeader || "128x128"
+                );
+
+                console.log(
+                    "Output:",
+                    outputSizeHeader || "256x256"
+                );
+
+                console.log(
                     "PSNR:",
-                    psnrHeader
+                    psnrHeader || "N/A"
                 );
 
                 console.log(
                     "SSIM:",
-                    ssimHeader
+                    ssimHeader || "N/A"
                 );
 
                 console.log(
                     "Runtime:",
-                    runtime
+                    runtime,
+                    "seconds"
                 );
 
+                console.log(
+                    "===================================="
+                );
 
-            } catch (error) {
+            }
+
+
+            catch (error) {
 
                 console.error(
                     "SIV-AI restoration error:",
@@ -527,21 +800,62 @@ document.addEventListener("DOMContentLoaded", () => {
                 );
 
 
-                loader.classList.add(
-                    "hidden"
-                );
+                /* --------------------------------------------
+                   RESET LOADING UI
+                -------------------------------------------- */
 
-                waitingText.classList.remove(
-                    "hidden"
-                );
+                if (loader) {
+
+                    loader.classList.add(
+                        "hidden"
+                    );
+
+                }
 
 
-                /*
-                 * Give a more useful error message.
-                 */
+                if (waitingText) {
+
+                    waitingText.classList.remove(
+                        "hidden"
+                    );
+
+                }
+
+
+                if (outputPlaceholder) {
+
+                    outputPlaceholder.classList.remove(
+                        "hidden"
+                    );
+
+                }
+
+
+                if (outputPreview) {
+
+                    outputPreview.classList.add(
+                        "hidden"
+                    );
+
+                }
+
+
+                if (resultPanel) {
+
+                    resultPanel.classList.add(
+                        "hidden"
+                    );
+
+                }
+
+
+                /* --------------------------------------------
+                   ERROR MESSAGE
+                -------------------------------------------- */
 
                 let errorMessage =
-                    error.message;
+                    error.message ||
+                    "Unknown error occurred.";
 
 
                 if (
@@ -549,18 +863,22 @@ document.addEventListener("DOMContentLoaded", () => {
                 ) {
 
                     errorMessage =
-                        "Unable to connect to the SIV-AI backend. Please make sure the Render backend is running.";
+                        "Unable to connect to the SIV-AI backend.\n\n" +
+                        "Please check whether the Render backend is running " +
+                        "and CORS is enabled.";
 
                 }
 
 
                 alert(
-                    "Restoration failed.\n\n"
-                    + errorMessage
+                    "Restoration failed.\n\n" +
+                    errorMessage
                 );
 
+            }
 
-            } finally {
+
+            finally {
 
                 restoreButton.disabled =
                     false;
@@ -575,67 +893,78 @@ document.addEventListener("DOMContentLoaded", () => {
        DOWNLOAD RESTORED IMAGE
     ===================================================== */
 
-    downloadButton.addEventListener(
-        "click",
-        () => {
+    if (downloadButton) {
 
-            if (!restoredBlob) {
+        downloadButton.addEventListener(
+            "click",
+            () => {
 
-                return;
+                if (!restoredBlob) {
 
-            }
+                    return;
 
-
-            const url =
-                URL.createObjectURL(
-                    restoredBlob
-                );
+                }
 
 
-            const link =
-                document.createElement(
-                    "a"
-                );
+                const url =
+                    URL.createObjectURL(
+                        restoredBlob
+                    );
 
 
-            link.href =
-                url;
+                const link =
+                    document.createElement(
+                        "a"
+                    );
 
 
-            link.download =
-                (
+                link.href =
+                    url;
+
+
+                const originalName =
                     selectedFile
                         ? selectedFile.name
-                            .replace(
-                                /\.[^/.]+$/,
-                                ""
-                            )
-                        : "image"
-                )
-                + "_SIV-AI_restored.png";
+                        : "image";
 
 
-            document.body.appendChild(
-                link
-            );
+                const baseName =
+                    originalName.replace(
+                        /\.[^/.]+$/,
+                        ""
+                    );
 
 
-            link.click();
+                link.download =
+                    `${baseName}_SIV-AI_restored.png`;
 
 
-            link.remove();
-
-
-            setTimeout(() => {
-
-                URL.revokeObjectURL(
-                    url
+                document.body.appendChild(
+                    link
                 );
 
-            }, 1000);
 
-        }
-    );
+                link.click();
+
+
+                link.remove();
+
+
+                setTimeout(
+                    () => {
+
+                        URL.revokeObjectURL(
+                            url
+                        );
+
+                    },
+                    1000
+                );
+
+            }
+        );
+
+    }
 
 
     /* =====================================================
@@ -648,80 +977,89 @@ document.addEventListener("DOMContentLoaded", () => {
         );
 
 
-    faqItems.forEach((item) => {
+    faqItems.forEach(
+        (item) => {
 
-        const question =
-            item.querySelector(
-                ".faq-question"
-            );
-
-
-        const answer =
-            item.querySelector(
-                ".faq-answer"
-            );
+            const question =
+                item.querySelector(
+                    ".faq-question"
+                );
 
 
-        question.addEventListener(
-            "click",
-            () => {
-
-                const isActive =
-                    item.classList.contains(
-                        "active"
-                    );
+            const answer =
+                item.querySelector(
+                    ".faq-answer"
+                );
 
 
-                /*
-                 * Close all FAQ items.
-                 */
+            if (!question || !answer) {
 
-                faqItems.forEach(
-                    (otherItem) => {
+                return;
 
-                        otherItem.classList.remove(
+            }
+
+
+            question.addEventListener(
+                "click",
+                () => {
+
+                    const isActive =
+                        item.classList.contains(
                             "active"
                         );
 
 
-                        const otherAnswer =
-                            otherItem.querySelector(
-                                ".faq-answer"
+                    /* -----------------------------------------
+                       CLOSE ALL FAQ ITEMS
+                    ----------------------------------------- */
+
+                    faqItems.forEach(
+                        (otherItem) => {
+
+                            otherItem.classList.remove(
+                                "active"
                             );
 
 
-                        if (otherAnswer) {
+                            const otherAnswer =
+                                otherItem.querySelector(
+                                    ".faq-answer"
+                                );
 
-                            otherAnswer.style.maxHeight =
-                                null;
+
+                            if (otherAnswer) {
+
+                                otherAnswer.style.maxHeight =
+                                    null;
+
+                            }
 
                         }
-
-                    }
-                );
-
-
-                /*
-                 * Open clicked item.
-                 */
-
-                if (!isActive) {
-
-                    item.classList.add(
-                        "active"
                     );
 
 
-                    answer.style.maxHeight =
-                        answer.scrollHeight
-                        + "px";
+                    /* -----------------------------------------
+                       OPEN CLICKED ITEM
+                    ----------------------------------------- */
+
+                    if (!isActive) {
+
+                        item.classList.add(
+                            "active"
+                        );
+
+
+                        answer.style.maxHeight =
+                            answer.scrollHeight +
+                            "px";
+
+                    }
 
                 }
+            );
 
-            }
-        );
-
-    });
+        }
+    );
 
 
     /* =====================================================
@@ -787,31 +1125,59 @@ document.addEventListener("DOMContentLoaded", () => {
                 event.preventDefault();
 
 
-                const type =
+                const typeElement =
                     document.getElementById(
                         "feedbackType"
-                    ).value;
+                    );
+
+
+                const nameElement =
+                    document.getElementById(
+                        "feedbackName"
+                    );
+
+
+                const emailElement =
+                    document.getElementById(
+                        "feedbackEmail"
+                    );
+
+
+                const commentsElement =
+                    document.getElementById(
+                        "feedbackComments"
+                    );
+
+
+                const type =
+                    typeElement
+                        ? typeElement.value
+                        : "General";
 
 
                 const name =
-                    document.getElementById(
-                        "feedbackName"
-                    ).value;
+                    nameElement
+                        ? nameElement.value
+                        : "";
 
 
                 const email =
-                    document.getElementById(
-                        "feedbackEmail"
-                    ).value;
+                    emailElement
+                        ? emailElement.value
+                        : "";
 
 
                 const comments =
-                    document.getElementById(
-                        "feedbackComments"
-                    ).value;
+                    commentsElement
+                        ? commentsElement.value
+                        : "";
 
 
                 try {
+
+                    /* -----------------------------------------
+                       SEND FEEDBACK TO RENDER
+                    ----------------------------------------- */
 
                     const response =
                         await fetch(
@@ -826,29 +1192,42 @@ document.addEventListener("DOMContentLoaded", () => {
 
                                 body:
                                     JSON.stringify({
+
                                         type,
+
                                         name,
+
                                         email,
+
                                         rating:
-                                            selectedRating ||
-                                            5,
+                                            selectedRating || 5,
+
                                         comments
+
                                     })
+
                             }
                         );
 
+
+                    /* -----------------------------------------
+                       CHECK RESPONSE
+                    ----------------------------------------- */
 
                     if (!response.ok) {
 
                         let message =
                             "Feedback submission failed.";
 
+
                         try {
 
                             const errorData =
                                 await response.json();
 
+
                             if (
+                                errorData &&
                                 errorData.detail
                             ) {
 
@@ -857,13 +1236,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
                             }
 
-                        } catch (_) {
+                        }
 
-                            /*
-                             * Ignore JSON parsing error.
-                             */
+                        catch (_) {
+
+                            /* Ignore JSON parsing error. */
 
                         }
+
 
                         throw new Error(
                             message
@@ -872,12 +1252,17 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
 
 
+                    /* -----------------------------------------
+                       SUCCESS
+                    ----------------------------------------- */
+
                     alert(
                         "Thank you! Your feedback has been submitted."
                     );
 
 
                     feedbackForm.reset();
+
 
                     selectedRating = 0;
 
@@ -893,7 +1278,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     );
 
 
-                } catch (error) {
+                }
+
+
+                catch (error) {
 
                     console.error(
                         "Feedback error:",
@@ -902,14 +1290,45 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
                     alert(
-                        "Unable to submit feedback.\n\n"
-                        + error.message
+                        "Unable to submit feedback.\n\n" +
+                        error.message
                     );
 
                 }
 
             }
         );
+
+    }
+
+
+    /* =====================================================
+       HTML ESCAPE
+    ===================================================== */
+
+    function escapeHTML(value) {
+
+        return String(value)
+            .replace(
+                /&/g,
+                "&amp;"
+            )
+            .replace(
+                /</g,
+                "&lt;"
+            )
+            .replace(
+                />/g,
+                "&gt;"
+            )
+            .replace(
+                /"/g,
+                "&quot;"
+            )
+            .replace(
+                /'/g,
+                "&#039;"
+            );
 
     }
 
@@ -928,10 +1347,44 @@ document.addEventListener("DOMContentLoaded", () => {
                     restoredURL
                 );
 
+                restoredURL = null;
+
             }
 
         }
     );
 
+
+    /* =====================================================
+       STARTUP LOG
+    ===================================================== */
+
+    console.log(
+        "===================================="
+    );
+
+    console.log(
+        "SIV-AI FRONTEND READY"
+    );
+
+    console.log(
+        "Backend:",
+        BACKEND_URL
+    );
+
+    console.log(
+        "Restore endpoint:",
+        `${BACKEND_URL}/api/restore`
+    );
+
+    console.log(
+        "Feedback endpoint:",
+        `${BACKEND_URL}/api/feedback`
+    );
+
+    console.log(
+        "===================================="
+
+    );
 
 });
