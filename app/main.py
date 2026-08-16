@@ -1,392 +1,959 @@
 from pathlib import Path
-import sys, time, io
+import sys
+import io
+import time
 
-import torch
 import numpy as np
+import torch
 
 from PIL import Image
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import StreamingResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
+
+
+# ============================================================
+# PROJECT ROOT
+# ============================================================
 
 ROOT = Path(__file__).resolve().parents[1]
-MODEL_PATH = ROOT / "siv_ai_phase4_best.pth"
-STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 sys.path.insert(0, str(ROOT))
+
+
+# ============================================================
+# IMPORT SIV-AI MODEL
+# ============================================================
+
 from src.models.siv_ai_phase4 import SIVAI
 
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-print("=" * 60)
+# ============================================================
+# CONFIGURATION
+# ============================================================
+
+CHECKPOINT = ROOT / "siv_ai_phase4_best.pth"
+
+EXPECTED_PARAMETERS = 110049
+
+INPUT_SIZE = (128, 128)
+OUTPUT_SIZE = (256, 256)
+
+
+# ============================================================
+# DEVICE
+# ============================================================
+
+DEVICE = torch.device(
+    "cuda" if torch.cuda.is_available() else "cpu"
+)
+
+
+# ============================================================
+# SUPPORTED FILE TYPES
+# ============================================================
+
+SUPPORTED_EXTENSIONS = {
+    ".npy",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".bmp",
+    ".tif",
+    ".tiff",
+    ".webp",
+}
+
+
+# ============================================================
+# FASTAPI APPLICATION
+# ============================================================
+
+app = FastAPI(
+    title="SIV-AI Phase 4",
+    description=(
+        "Semiconductor Inspection and Verification AI "
+        "for NoisyLR image restoration."
+    ),
+    version="1.0.0",
+)
+
+
+# ============================================================
+# CORS
+# ============================================================
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# ============================================================
+# STARTUP INFORMATION
+# ============================================================
+
+print()
+print("=" * 70)
 print("SIV-AI WEB BACKEND")
-print("=" * 60)
+print("=" * 70)
+
 print("Device:", DEVICE)
+
+if torch.cuda.is_available():
+    print(
+        "GPU:",
+        torch.cuda.get_device_name(0)
+    )
+
+
+# ============================================================
+# LOAD MODEL ONCE
+# ============================================================
+
+print()
+print("Loading Phase-4 model...")
+
 
 model = SIVAI().to(DEVICE)
 
-checkpoint = torch.load(
-    MODEL_PATH,
-    map_location=DEVICE,
-    weights_only=False
+
+# ============================================================
+# VERIFY PARAMETER COUNT
+# ============================================================
+
+parameter_count = sum(
+    p.numel()
+    for p in model.parameters()
 )
 
+print(
+    "Parameters:",
+    parameter_count
+)
+
+
+if parameter_count != EXPECTED_PARAMETERS:
+
+    raise RuntimeError(
+        "\nPhase-4 architecture mismatch!\n"
+        f"Expected: {EXPECTED_PARAMETERS}\n"
+        f"Found   : {parameter_count}\n"
+    )
+
+
+print("Parameter count: PASS")
+
+
+# ============================================================
+# CHECK CHECKPOINT
+# ============================================================
+
+if not CHECKPOINT.exists():
+
+    raise FileNotFoundError(
+        "\nPhase-4 checkpoint not found:\n"
+        f"{CHECKPOINT}"
+    )
+
+
+print(
+    "Checkpoint:",
+    CHECKPOINT
+)
+
+
+# ============================================================
+# LOAD CHECKPOINT
+# ============================================================
+
+checkpoint = torch.load(
+    CHECKPOINT,
+    map_location=DEVICE,
+    weights_only=False,
+)
+
+
+if isinstance(checkpoint, dict):
+
+    if "model_state_dict" in checkpoint:
+
+        state_dict = checkpoint[
+            "model_state_dict"
+        ]
+
+    else:
+
+        state_dict = checkpoint
+
+else:
+
+    raise RuntimeError(
+        "Unsupported checkpoint format."
+    )
+
+
 model.load_state_dict(
-    checkpoint["model_state_dict"]
-    if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint
-    else checkpoint
+    state_dict,
+    strict=True,
 )
 
 model.eval()
 
-print("Phase-4 checkpoint loaded")
-print("=" * 60)
 
-app = FastAPI(
-    title="SIV-AI",
-    description="Semiconductor Image Restoration and Verification AI",
-    version="1.0"
+print(
+    "Phase-4 model loaded successfully."
 )
 
-app.mount(
-    "/static",
-    StaticFiles(directory=STATIC_DIR),
-    name="static"
-)
-
-IMAGE_EXTENSIONS = {
-    ".png", ".jpg", ".jpeg",
-    ".bmp", ".tif", ".tiff", ".webp"
-}
-
-NPY_EXTENSIONS = {".npy"}
+print("=" * 70)
 
 
 # ============================================================
-# NPY LOADING
+# NPY PREPROCESSING
 # ============================================================
 
-def load_npy(data: bytes):
-    try:
-        array = np.load(
-            io.BytesIO(data),
-            allow_pickle=False
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Could not read NPY file: {e}"
-        )
+def prepare_npy(array):
+    """
+    Prepare KLA NoisyLR .npy input.
 
-    array = np.asarray(array)
+    Expected:
+        128 x 128
 
-    if not np.issubdtype(array.dtype, np.number):
-        raise HTTPException(
-            status_code=400,
-            detail="NPY must contain numeric image data."
-        )
+    Values:
+        float32
 
-    if array.ndim == 3:
-        if array.shape[-1] == 1:
+    IMPORTANT:
+        NPY values are preserved.
+
+        No /255 normalization.
+
+        No clipping before inference.
+    """
+
+    # --------------------------------------------------------
+    # Convert to float32
+    # --------------------------------------------------------
+
+    array = np.asarray(
+        array,
+        dtype=np.float32
+    )
+
+    # --------------------------------------------------------
+    # Remove dimensions of size 1
+    # --------------------------------------------------------
+
+    array = np.squeeze(array)
+
+    # --------------------------------------------------------
+    # Accept grayscale layouts
+    #
+    # (128,128)
+    # (1,128,128)
+    # (128,128,1)
+    # --------------------------------------------------------
+
+    if array.ndim == 2:
+
+        pass
+
+    elif array.ndim == 3:
+
+        if array.shape[0] == 1:
+
+            array = array[0]
+
+        elif array.shape[-1] == 1:
+
             array = array[:, :, 0]
+
         else:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Unsupported NPY shape: {array.shape}"
+
+            raise ValueError(
+                "Unsupported NPY shape. "
+                "Expected grayscale array, "
+                f"got {array.shape}"
             )
 
-    if array.ndim != 2:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Expected 2D grayscale NPY, got {array.shape}"
+    else:
+
+        raise ValueError(
+            "Unsupported NPY dimensions. "
+            f"Got shape {array.shape}"
         )
+
+    # --------------------------------------------------------
+    # Verify 128x128
+    # --------------------------------------------------------
+
+    if tuple(array.shape) != (128, 128):
+
+        raise ValueError(
+            "Invalid NPY dimensions.\n"
+            "Expected: (128, 128)\n"
+            f"Received: {array.shape}"
+        )
+
+    # --------------------------------------------------------
+    # Check NaN / Inf
+    # --------------------------------------------------------
 
     if not np.isfinite(array).all():
-        raise HTTPException(
-            status_code=400,
-            detail="NPY contains NaN or Inf values."
+
+        raise ValueError(
+            "NPY file contains NaN or Inf values."
         )
 
-    return array.astype(np.float32)
+    # --------------------------------------------------------
+    # Preserve original values
+    #
+    # NO:
+    #   /255
+    #
+    # NO:
+    #   clipping
+    # --------------------------------------------------------
+
+    tensor = torch.from_numpy(array)
+
+    # (128,128)
+    #     ↓
+    # (1,128,128)
+    #     ↓
+    # (1,1,128,128)
+
+    tensor = tensor.unsqueeze(0)
+    tensor = tensor.unsqueeze(0)
+
+    tensor = tensor.to(
+        DEVICE,
+        dtype=torch.float32
+    )
+
+    return tensor
 
 
 # ============================================================
-# NPY -> PNG FOR BROWSER PREVIEW ONLY
+# STANDARD IMAGE PREPROCESSING
 # ============================================================
 
-def npy_to_png(array):
-    lo = float(np.percentile(array, 1))
-    hi = float(np.percentile(array, 99))
+def prepare_standard_image(contents):
+    """
+    Prepare PNG/JPG/etc.
 
-    if hi <= lo:
-        lo = float(array.min())
-        hi = float(array.max())
+    Grayscale
+    Resize to 128x128
+    Normalize uint8 image to [0,1]
+    """
 
-    if hi <= lo:
-        preview = np.zeros_like(array, dtype=np.uint8)
-    else:
-        preview = np.clip(
-            (array - lo) / (hi - lo),
-            0,
-            1
-        )
+    image = Image.open(
+        io.BytesIO(contents)
+    )
 
-        preview = (
-            preview * 255
-        ).astype(np.uint8)
-
-    image = Image.fromarray(preview, mode="L")
-
-    buffer = io.BytesIO()
-    image.save(buffer, format="PNG")
-    buffer.seek(0)
-
-    return buffer.getvalue()
-
-
-# ============================================================
-# NORMAL IMAGE -> MODEL TENSOR
-# ============================================================
-
-def image_to_tensor(image):
     image = image.convert("L")
 
     image = image.resize(
-        (128, 128),
+        INPUT_SIZE,
         Image.Resampling.BICUBIC
     )
 
     array = np.asarray(
         image,
         dtype=np.float32
-    ) / 255.0
+    )
 
-    tensor = torch.from_numpy(array)[None, None]
+    array = array / 255.0
 
-    return tensor.to(DEVICE)
+    tensor = torch.from_numpy(array)
+
+    tensor = tensor.unsqueeze(0)
+    tensor = tensor.unsqueeze(0)
+
+    tensor = tensor.to(
+        DEVICE,
+        dtype=torch.float32
+    )
+
+    return tensor
 
 
 # ============================================================
-# NPY -> MODEL TENSOR
+# OUTPUT → PNG
 # ============================================================
 
-def npy_to_tensor(array):
+def prediction_to_png(prediction):
+    """
+    Convert Phase-4 prediction to 256x256 PNG.
 
-    if array.shape != (128, 128):
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "Phase-4 expects a 128 × 128 NoisyLR input. "
-                f"Received {array.shape}."
-            )
+    Clipping is ONLY for PNG visualization.
+    """
+
+    output = prediction.detach().cpu()
+
+    output = output.squeeze()
+
+    # --------------------------------------------------------
+    # Verify output size
+    # --------------------------------------------------------
+
+    if tuple(output.shape) != (256, 256):
+
+        raise RuntimeError(
+            "Unexpected model output size. "
+            f"Expected (256,256), got {tuple(output.shape)}"
         )
 
-    # IMPORTANT:
-    # Preserve original NPY values.
-    tensor = torch.from_numpy(
-        array.astype(np.float32)
-    )[None, None]
+    # --------------------------------------------------------
+    # Clamp only for image visualization
+    # --------------------------------------------------------
 
-    return tensor.to(DEVICE)
+    output = output.clamp(
+        0.0,
+        1.0
+    )
 
+    # --------------------------------------------------------
+    # Convert [0,1] → [0,255]
+    # --------------------------------------------------------
 
-# ============================================================
-# OUTPUT -> PNG
-# ============================================================
-
-def tensor_to_png(output):
-
-    output = output.detach().cpu().squeeze()
-
-    output = output.clamp(0, 1)
-
-    array = (
-        output.numpy() * 255
+    output_array = (
+        output.numpy() * 255.0
     ).round().astype(np.uint8)
 
+    # --------------------------------------------------------
+    # PIL image
+    # --------------------------------------------------------
+
     image = Image.fromarray(
-        array,
+        output_array,
         mode="L"
     )
 
+    # --------------------------------------------------------
+    # Encode PNG into memory
+    # --------------------------------------------------------
+
     buffer = io.BytesIO()
-    image.save(buffer, format="PNG")
+
+    image.save(
+        buffer,
+        format="PNG"
+    )
+
     buffer.seek(0)
 
-    return buffer.getvalue()
+    return buffer, image
 
 
 # ============================================================
-# HEALTH
-# ============================================================
-
-@app.get("/api/health")
-def health():
-
-    return {
-        "status": "ok",
-        "model": "SIV-AI Phase 4",
-        "device": str(DEVICE),
-        "parameters": sum(
-            p.numel() for p in model.parameters()
-        )
-    }
-
-
-# ============================================================
-# PREVIEW
-# ============================================================
-
-@app.post("/api/preview")
-async def preview(file: UploadFile = File(...)):
-
-    name = file.filename or ""
-    suffix = Path(name).suffix.lower()
-    data = await file.read()
-
-    if suffix == ".npy":
-
-        array = load_npy(data)
-
-        png = npy_to_png(array)
-
-        headers = {
-            "X-Input-Size":
-                f"{array.shape[1]}x{array.shape[0]}"
-        }
-
-        return StreamingResponse(
-            io.BytesIO(png),
-            media_type="image/png",
-            headers=headers
-        )
-
-    if suffix in IMAGE_EXTENSIONS:
-
-        try:
-            image = Image.open(
-                io.BytesIO(data)
-            )
-            image.load()
-        except Exception:
-            raise HTTPException(
-                status_code=400,
-                detail="Could not read image."
-            )
-
-        buffer = io.BytesIO()
-
-        image.convert("L").save(
-            buffer,
-            format="PNG"
-        )
-
-        buffer.seek(0)
-
-        headers = {
-            "X-Input-Size":
-                f"{image.width}x{image.height}"
-        }
-
-        return StreamingResponse(
-            buffer,
-            media_type="image/png",
-            headers=headers
-        )
-
-    raise HTTPException(
-        status_code=400,
-        detail="Unsupported file format."
-    )
-
-
-# ============================================================
-# RESTORE
-# ============================================================
-
-@app.post("/api/restore")
-async def restore(file: UploadFile = File(...)):
-
-    name = file.filename or ""
-    suffix = Path(name).suffix.lower()
-    data = await file.read()
-
-    # ---------------- NPY ----------------
-
-    if suffix == ".npy":
-
-        array = load_npy(data)
-
-        tensor = npy_to_tensor(array)
-
-        width = array.shape[1]
-        height = array.shape[0]
-
-    # ---------------- IMAGE ----------------
-
-    elif suffix in IMAGE_EXTENSIONS:
-
-        try:
-            image = Image.open(
-                io.BytesIO(data)
-            )
-            image.load()
-        except Exception:
-            raise HTTPException(
-                status_code=400,
-                detail="Could not read image."
-            )
-
-        width, height = image.size
-
-        tensor = image_to_tensor(image)
-
-    else:
-
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "Unsupported file format. "
-                "Use NPY, PNG, JPG, JPEG, BMP, TIFF or WEBP."
-            )
-        )
-
-    # ---------------- INFERENCE ----------------
-
-    start = time.perf_counter()
-
-    with torch.inference_mode():
-        prediction = model(tensor)
-
-    if DEVICE.type == "cuda":
-        torch.cuda.synchronize()
-
-    elapsed = time.perf_counter() - start
-
-    output = tensor_to_png(prediction)
-
-    return StreamingResponse(
-        io.BytesIO(output),
-        media_type="image/png",
-        headers={
-            "X-Inference-Time": f"{elapsed:.4f}",
-            "X-Input-Size": f"{width}x{height}",
-            "X-Output-Size": "256x256"
-        }
-    )
-
-
-# ============================================================
-# HOME
+# ROOT ENDPOINT
 # ============================================================
 
 @app.get("/")
 def root():
 
-    return StreamingResponse(
-        open(
-            STATIC_DIR / "index.html",
-            "rb"
+    return {
+        "project": "SIV-AI",
+        "model": "Phase-4",
+        "status": "online",
+        "device": str(DEVICE),
+        "gpu": (
+            torch.cuda.get_device_name(0)
+            if torch.cuda.is_available()
+            else None
         ),
-        media_type="text/html"
+        "parameters": parameter_count,
+        "input_size": "128x128",
+        "output_size": "256x256",
+        "npy_supported": True,
+        "supported_formats": [
+            "NPY",
+            "PNG",
+            "JPG",
+            "JPEG",
+            "BMP",
+            "TIF",
+            "TIFF",
+            "WEBP",
+        ],
+        "endpoint": "/restore",
+    }
+
+
+# ============================================================
+# HEALTH ENDPOINT
+# ============================================================
+
+@app.get("/health")
+def health():
+
+    return {
+        "status": "healthy",
+        "project": "SIV-AI",
+        "model": "Phase-4",
+        "device": str(DEVICE),
+        "gpu": (
+            torch.cuda.get_device_name(0)
+            if torch.cuda.is_available()
+            else None
+        ),
+        "parameters": parameter_count,
+        "npy_supported": True,
+    }
+
+
+# ============================================================
+# RESTORE ENDPOINT
+# ============================================================
+
+@app.post("/restore")
+async def restore(
+    file: UploadFile = File(...)
+):
+
+    # ========================================================
+    # FILE INFORMATION
+    # ========================================================
+
+    filename = file.filename or ""
+
+    suffix = Path(
+        filename
+    ).suffix.lower()
+
+    print()
+    print("=" * 70)
+    print("NEW RESTORATION REQUEST")
+    print("=" * 70)
+
+    print(
+        "Filename:",
+        filename
     )
+
+    print(
+        "Extension:",
+        suffix
+    )
+
+
+    # ========================================================
+    # VALIDATE EXTENSION
+    # ========================================================
+
+    if suffix not in SUPPORTED_EXTENSIONS:
+
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Unsupported file format. "
+                "Use NPY, PNG, JPG, JPEG, BMP, "
+                "TIF, TIFF or WEBP."
+            ),
+        )
+
+
+    # ========================================================
+    # READ UPLOADED FILE
+    # ========================================================
+
+    try:
+
+        contents = await file.read()
+
+    except Exception as exc:
+
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Unable to read uploaded file: {exc}"
+            ),
+        )
+
+
+    if not contents:
+
+        raise HTTPException(
+            status_code=400,
+            detail="Uploaded file is empty.",
+        )
+
+
+    print(
+        "Upload size:",
+        len(contents),
+        "bytes"
+    )
+
+
+    # ========================================================
+    # PREPARE INPUT
+    # ========================================================
+
+    try:
+
+        # ====================================================
+        # NPY
+        # ====================================================
+
+        if suffix == ".npy":
+
+            print()
+            print("-" * 70)
+            print("NPY INPUT DETECTED")
+            print("-" * 70)
+
+            # -----------------------------------------------
+            # Load directly from memory
+            # -----------------------------------------------
+
+            array = np.load(
+                io.BytesIO(contents),
+                allow_pickle=False,
+            )
+
+            # -----------------------------------------------
+            # Information
+            # -----------------------------------------------
+
+            print(
+                "Shape:",
+                array.shape
+            )
+
+            print(
+                "Dtype:",
+                array.dtype
+            )
+
+            print(
+                "Min:",
+                float(np.min(array))
+            )
+
+            print(
+                "Max:",
+                float(np.max(array))
+            )
+
+            print(
+                "Mean:",
+                float(np.mean(array))
+            )
+
+            print(
+                "Std:",
+                float(np.std(array))
+            )
+
+            # -----------------------------------------------
+            # Prepare
+            # -----------------------------------------------
+
+            tensor = prepare_npy(
+                array
+            )
+
+            print(
+                "NPY values preserved."
+            )
+
+            print(
+                "No /255 normalization applied."
+            )
+
+        # ====================================================
+        # STANDARD IMAGE
+        # ====================================================
+
+        else:
+
+            print()
+            print("-" * 70)
+            print("STANDARD IMAGE INPUT DETECTED")
+            print("-" * 70)
+
+            tensor = prepare_standard_image(
+                contents
+            )
+
+            print(
+                "Converted to grayscale."
+            )
+
+            print(
+                "Resized to 128x128."
+            )
+
+            print(
+                "Normalized to [0,1]."
+            )
+
+
+    except Exception as exc:
+
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        )
+
+
+    # ========================================================
+    # VERIFY INPUT SHAPE
+    # ========================================================
+
+    expected_input = (
+        1,
+        1,
+        128,
+        128,
+    )
+
+    if tuple(tensor.shape) != expected_input:
+
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Invalid model input shape. "
+                f"Expected {expected_input}, "
+                f"got {tuple(tensor.shape)}"
+            ),
+        )
+
+
+    print()
+    print(
+        "Model input:",
+        tuple(tensor.shape)
+    )
+
+    print(
+        "Input range:",
+        float(tensor.min()),
+        "to",
+        float(tensor.max())
+    )
+
+    print(
+        "Input shape: PASS"
+    )
+
+
+    # ========================================================
+    # MODEL INFERENCE
+    # ========================================================
+
+    print()
+    print("-" * 70)
+    print("RUNNING SIV-AI PHASE 4")
+    print("-" * 70)
+
+    try:
+
+        if DEVICE.type == "cuda":
+
+            torch.cuda.synchronize()
+
+        start_time = time.perf_counter()
+
+        with torch.no_grad():
+
+            prediction = model(
+                tensor
+            )
+
+        if DEVICE.type == "cuda":
+
+            torch.cuda.synchronize()
+
+        inference_time = (
+            time.perf_counter()
+            - start_time
+        )
+
+    except Exception as exc:
+
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                f"Model inference failed: {exc}"
+            ),
+        )
+
+
+    # ========================================================
+    # VERIFY OUTPUT
+    # ========================================================
+
+    expected_output = (
+        1,
+        1,
+        256,
+        256,
+    )
+
+    if tuple(prediction.shape) != expected_output:
+
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Invalid model output shape. "
+                f"Expected {expected_output}, "
+                f"got {tuple(prediction.shape)}"
+            ),
+        )
+
+
+    print()
+    print(
+        "Prediction shape:",
+        tuple(prediction.shape)
+    )
+
+    print(
+        "Output shape: PASS"
+    )
+
+
+    # ========================================================
+    # OUTPUT STATISTICS
+    # ========================================================
+
+    print()
+    print("Output statistics:")
+
+    print(
+        "  Min   :",
+        float(prediction.min())
+    )
+
+    print(
+        "  Max   :",
+        float(prediction.max())
+    )
+
+    print(
+        "  Mean  :",
+        float(prediction.mean())
+    )
+
+    print(
+        "  Std   :",
+        float(prediction.std())
+    )
+
+
+    # ========================================================
+    # CONVERT TO PNG
+    # ========================================================
+
+    try:
+
+        buffer, image = prediction_to_png(
+            prediction
+        )
+
+    except Exception as exc:
+
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                f"Unable to create PNG output: {exc}"
+            ),
+        )
+
+
+    # ========================================================
+    # FINAL LOG
+    # ========================================================
+
+    print()
+    print(
+        f"Inference completed in "
+        f"{inference_time:.4f} seconds"
+    )
+
+    print(
+        "Output size:",
+        image.size
+    )
+
+    print(
+        "Output format: PNG"
+    )
+
+    print("=" * 70)
+
+
+    # ========================================================
+    # RETURN RESTORED IMAGE
+    # ========================================================
+
+    return StreamingResponse(
+        buffer,
+        media_type="image/png",
+        headers={
+            "Content-Disposition": (
+                'inline; filename="siv_ai_restored.png"'
+            ),
+            "X-SIV-AI-Input-Format": suffix,
+            "X-SIV-AI-Input-Size": "128x128",
+            "X-SIV-AI-Output-Size": "256x256",
+            "X-SIV-AI-Inference-Time": (
+                f"{inference_time:.4f}"
+            ),
+            "X-SIV-AI-Parameters": str(
+                parameter_count
+            ),
+            "X-SIV-AI-NPY-Supported": "true",
+        },
+    )
+
+
+# ============================================================
+# OPTIONAL API INFORMATION
+# ============================================================
+
+@app.get("/info")
+def info():
+
+    return {
+        "name": "SIV-AI",
+        "full_name": (
+            "Semiconductor Inspection and "
+            "Verification AI"
+        ),
+        "model": "Phase-4",
+        "parameters": parameter_count,
+        "input": {
+            "size": "128x128",
+            "format": [
+                "NPY",
+                "PNG",
+                "JPG",
+                "JPEG",
+                "BMP",
+                "TIF",
+                "TIFF",
+                "WEBP",
+            ],
+        },
+        "output": {
+            "size": "256x256",
+            "format": "PNG",
+        },
+        "npy_processing": {
+            "normalization": "none",
+            "clipping_before_inference": False,
+            "values_preserved": True,
+        },
+        "device": str(DEVICE),
+        "gpu": (
+            torch.cuda.get_device_name(0)
+            if torch.cuda.is_available()
+            else None
+        ),
+    }

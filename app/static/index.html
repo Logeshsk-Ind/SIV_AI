@@ -18,12 +18,14 @@
             <p>Semiconductor Image Restoration & Verification AI</p>
         </div>
     </div>
-    <div class="status"><span class="status-dot"></span> Phase 4</div>
+    <div class="status">
+        <span class="status-dot"></span> Phase 4
+    </div>
 </header>
 
 <section class="hero">
     <div class="hero-text">
-        <div class="badge">AI-POWERED SEMICONDUCTOR-INSPECTION-VERIFICATION</div>
+        <div class="badge">AI-POWERED SEMICONDUCTOR INSPECTION</div>
         <h2>Restore degraded <span>SEM images.</span></h2>
         <p>
             SIV-AI reconstructs degraded semiconductor inspection
@@ -42,12 +44,10 @@
         <label for="fileInput" class="browse-button">Browse File</label>
 
         <input id="fileInput" type="file"
-               accept=".npy,.png,.jpg,.jpeg,.bmp,.tif,.tiff,.webp"
-               hidden>
+            accept=".npy,.png,.jpg,.jpeg,.bmp,.tif,.tiff,.webp"
+            hidden>
 
-        <p class="format">
-            NPY · PNG · JPG · JPEG · BMP · TIFF · WEBP
-        </p>
+        <p class="format">NPY · PNG · JPG · JPEG · BMP · TIFF · WEBP</p>
         <small>Select a file from any folder on your computer</small>
     </div>
 </section>
@@ -76,7 +76,7 @@
                 <span class="label restored">OUTPUT</span>
                 <h3>SIV-AI Restored Image</h3>
             </div>
-            <span id="outputSize" class="resolution">256 × 256</span>
+            <span id="outputSize" class="resolution">—</span>
         </div>
 
         <div class="image-container">
@@ -99,14 +99,49 @@
     </button>
 </div>
 
+<!-- MODEL INFORMATION -->
 <div id="metrics" class="metrics hidden">
-    <div class="metric"><span>Model</span><strong>Phase 4</strong></div>
-    <div class="metric"><span>Parameters</span><strong>110,049</strong></div>
-    <div class="metric"><span>Output</span><strong>256 × 256</strong></div>
+
+    <div class="metric">
+        <span>Model</span>
+        <strong>Phase 4</strong>
+    </div>
+
+    <div class="metric">
+        <span>Parameters</span>
+        <strong>110,049</strong>
+    </div>
+
+    <div class="metric">
+        <span>Output</span>
+        <strong id="metricOutput">—</strong>
+    </div>
+
     <div class="metric">
         <span>Inference</span>
         <strong id="inferenceTime">—</strong>
     </div>
+
+    <div class="metric">
+        <span>PSNR</span>
+        <strong id="psnr">—</strong>
+    </div>
+
+    <div class="metric">
+        <span>SSIM</span>
+        <strong id="ssim">—</strong>
+    </div>
+
+    <div class="metric">
+        <span>LPIPS</span>
+        <strong id="lpips">—</strong>
+    </div>
+
+</div>
+
+<!-- QUALITY STATUS -->
+<div id="qualityInfo" class="quality-info hidden">
+    Metrics are calculated against the corresponding ground-truth image.
 </div>
 
 </section>
@@ -121,5 +156,6 @@
 </div>
 
 <script src="/static/app.js"></script>
+
 </body>
 </html>

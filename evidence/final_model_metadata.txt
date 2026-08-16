@@ -1,0 +1,36 @@
+SIV-AI FINAL MODEL
+==================
+
+Model:
+SIV-AI Phase 4
+
+Architecture:
+Wavelet-guided hybrid restoration network
+NAFNet branch + Restormer branch
+
+Parameters:
+110,049
+
+Input:
+1 x 128 x 128 grayscale image
+
+Output:
+1 x 256 x 256 restored image
+
+Final checkpoint:
+phase4_source/siv_ai_phase4_weights.pth
+
+Validation set:
+640 samples
+
+Validation metrics:
+Mean PSNR   : 27.910224 dB
+Global PSNR : 24.981073 dB
+Mean SSIM   : 0.753016
+Global MSE  : 0.00317609
+
+Device:
+NVIDIA GeForce RTX 2050
+
+Model status:
+FROZEN FOR FINAL SUBMISSION

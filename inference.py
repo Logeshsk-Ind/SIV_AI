@@ -1,7 +1,10 @@
 """
-SIV-AI Inference Launcher
+SIV-AI Phase-4 Batch Inference
 
-Root-level wrapper for the Phase-4 inference pipeline.
+Usage:
+    python inference.py --input_dir <INPUT_DIR> --output_dir <OUTPUT_DIR>
+
+Processes every supported image / NPY file in the input directory.
 """
 
 import argparse
@@ -13,106 +16,109 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent
 PHASE4_SCRIPT = PROJECT_ROOT / "inference" / "infer_phase4.py"
 
+SUPPORTED = {
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".bmp",
+    ".tif",
+    ".tiff",
+    ".webp",
+    ".npy",
+}
+
 
 def main():
     parser = argparse.ArgumentParser(
-        description="SIV-AI Phase-4 Image Restoration"
+        description="SIV-AI Phase-4 Batch Image Restoration"
     )
 
     parser.add_argument(
         "--input_dir",
-        default="inputs",
-        help="Directory containing input images"
+        required=True,
+        help="Directory containing degraded input files",
     )
 
     parser.add_argument(
         "--output_dir",
-        default="results",
-        help="Directory for restored images"
-    )
-
-    parser.add_argument(
-        "--input",
-        default=None,
-        help="Optional single input file"
+        required=True,
+        help="Directory where restored outputs will be saved",
     )
 
     args = parser.parse_args()
+
+    input_dir = Path(args.input_dir).resolve()
+    output_dir = Path(args.output_dir).resolve()
+
+    if not input_dir.exists():
+        raise FileNotFoundError(
+            f"Input directory does not exist:\n{input_dir}"
+        )
 
     if not PHASE4_SCRIPT.exists():
         raise FileNotFoundError(
             f"Phase-4 inference script not found:\n{PHASE4_SCRIPT}"
         )
 
-    input_dir = Path(args.input_dir).resolve()
-    output_dir = Path(args.output_dir).resolve()
-
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # If a specific input was supplied, run Phase-4 directly on it.
-    if args.input:
-        input_path = Path(args.input).resolve()
+    files = sorted(
+        p for p in input_dir.iterdir()
+        if p.is_file() and p.suffix.lower() in SUPPORTED
+    )
 
+    if not files:
+        raise FileNotFoundError(
+            f"No supported input files found in:\n{input_dir}"
+        )
+
+    print("=" * 70)
+    print("SIV-AI PHASE-4 BATCH INFERENCE")
+    print("=" * 70)
+    print(f"Input directory : {input_dir}")
+    print(f"Output directory: {output_dir}")
+    print(f"Files found     : {len(files)}")
+    print("=" * 70)
+
+    failed = []
+
+    for index, input_file in enumerate(files, start=1):
+
+        print()
+        print(f"[{index}/{len(files)}] Processing: {input_file.name}")
+
+        # Tell the Phase-4 script where the output should go.
         command = [
             sys.executable,
             str(PHASE4_SCRIPT),
-            str(input_path),
+            str(input_file),
+            "--output_dir",
+            str(output_dir),
         ]
 
-    else:
-        # Find usable inputs.
-        supported = {
-            ".png",
-            ".jpg",
-            ".jpeg",
-            ".bmp",
-            ".tif",
-            ".tiff",
-            ".webp",
-            ".npy",
-        }
+        result = subprocess.run(command)
 
-        files = sorted(
-            p for p in input_dir.iterdir()
-            if p.is_file() and p.suffix.lower() in supported
-        )
+        if result.returncode != 0:
+            failed.append(input_file.name)
+            print(f"FAILED: {input_file.name}")
+        else:
+            print(f"SUCCESS: {input_file.name}")
 
-        if not files:
-            raise FileNotFoundError(
-                f"No supported input files found in:\n{input_dir}"
-            )
+    print()
+    print("=" * 70)
+    print("BATCH INFERENCE COMPLETE")
+    print("=" * 70)
+    print(f"Total files : {len(files)}")
+    print(f"Successful  : {len(files) - len(failed)}")
+    print(f"Failed      : {len(failed)}")
 
-        print("=" * 70)
-        print("SIV-AI INFERENCE LAUNCHER")
-        print("=" * 70)
-        print(f"Input directory : {input_dir}")
-        print(f"Output directory: {output_dir}")
-        print(f"Files found     : {len(files)}")
+    if failed:
         print()
+        print("Failed files:")
+        for name in failed:
+            print(f"  - {name}")
 
-        # Run Phase-4 once for each input.
-        for input_file in files:
-            print("=" * 70)
-            print(f"Processing: {input_file.name}")
-            print("=" * 70)
-
-            command = [
-                sys.executable,
-                str(PHASE4_SCRIPT),
-                str(input_file),
-            ]
-
-            result = subprocess.run(command)
-
-            if result.returncode != 0:
-                print(
-                    f"\nWARNING: Phase-4 failed for {input_file.name}"
-                )
-
-        print("\nInference processing completed.")
-        return
-
-    subprocess.run(command, check=True)
+    print("=" * 70)
 
 
 if __name__ == "__main__":

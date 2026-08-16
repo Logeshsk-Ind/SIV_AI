@@ -1,6 +1,5 @@
 from pathlib import Path
 import sys
-import argparse
 
 import torch
 from PIL import Image
@@ -28,10 +27,10 @@ from src.models.siv_ai_phase4 import SIVAI
 # PATHS
 # ============================================================
 
-CHECKPOINT = ROOT / "siv_ai_phase4_best.pth"
+CHECKPOINT = ROOT / "model" / "siv_ai_phase4_weights.pth"
 
 INPUT_DIR = ROOT / "inputs"
-DEFAULT_OUTPUT_DIR = ROOT / "outputs" / "phase4"
+OUTPUT_DIR = ROOT / "outputs" / "phase4"
 
 
 # ============================================================
@@ -88,6 +87,7 @@ def load_image(image_path, device):
     # --------------------------------------------------------
 
     if not image_path.exists():
+
         raise FileNotFoundError(
             f"Input image not found:\n{image_path}"
         )
@@ -99,6 +99,7 @@ def load_image(image_path, device):
     suffix = image_path.suffix.lower()
 
     if suffix not in SUPPORTED_EXTENSIONS:
+
         raise ValueError(
             f"Unsupported image format: {suffix}\n"
             f"Supported formats: "
@@ -108,6 +109,7 @@ def load_image(image_path, device):
     print()
     print("Loading input:")
     print(" ", image_path)
+
 
     # ========================================================
     # NPY INPUT
@@ -122,7 +124,9 @@ def load_image(image_path, device):
         # Load NPY
         # ----------------------------------------------------
 
-        image_array = np.load(image_path)
+        image_array = np.load(
+            image_path
+        )
 
         # ----------------------------------------------------
         # Display original NPY information
@@ -174,7 +178,9 @@ def load_image(image_path, device):
         # Remove unnecessary dimensions
         # ----------------------------------------------------
 
-        image_array = np.squeeze(image_array)
+        image_array = np.squeeze(
+            image_array
+        )
 
         # ----------------------------------------------------
         # Accept grayscale layouts:
@@ -186,14 +192,17 @@ def load_image(image_path, device):
 
         if image_array.ndim == 2:
 
+            # Already [H,W]
             pass
 
         elif image_array.ndim == 3:
 
+            # [1,H,W]
             if image_array.shape[0] == 1:
 
                 image_array = image_array[0]
 
+            # [H,W,1]
             elif image_array.shape[-1] == 1:
 
                 image_array = image_array[:, :, 0]
@@ -202,16 +211,16 @@ def load_image(image_path, device):
 
                 raise ValueError(
                     "\nUnsupported NPY shape.\n"
-                    f"Expected grayscale image, "
-                    f"got: {image_array.shape}"
+                    f"Expected grayscale image, got: "
+                    f"{image_array.shape}"
                 )
 
         else:
 
             raise ValueError(
                 "\nUnsupported NPY dimensions.\n"
-                f"Expected 2D grayscale array, "
-                f"got: shape={image_array.shape}"
+                f"Expected 2D grayscale array, got: "
+                f"shape={image_array.shape}"
             )
 
         # ----------------------------------------------------
@@ -248,19 +257,36 @@ def load_image(image_path, device):
         # Check NaN / Inf
         # ----------------------------------------------------
 
-        if not np.isfinite(image_array).all():
+        if not np.isfinite(
+            image_array
+        ).all():
 
             raise ValueError(
                 "\nNPY input contains NaN or Inf values."
             )
 
         # ----------------------------------------------------
-        # Preserve original floating-point values
+        # IMPORTANT
+        #
+        # Do NOT:
+        #
+        # image_array / 255
+        #
+        # Do NOT:
+        #
+        # np.clip(image_array, 0, 1)
+        #
+        # The original floating-point values are preserved.
         # ----------------------------------------------------
 
         print()
-        print("NPY values preserved.")
-        print("No /255 normalization applied.")
+        print(
+            "NPY values preserved."
+        )
+
+        print(
+            "No /255 normalization applied."
+        )
 
         # ----------------------------------------------------
         # Convert NumPy → PyTorch
@@ -272,9 +298,12 @@ def load_image(image_path, device):
         # [1,1,H,W]
         # ----------------------------------------------------
 
-        tensor = torch.from_numpy(image_array)
+        tensor = torch.from_numpy(
+            image_array
+        )
 
         tensor = tensor.unsqueeze(0)
+
         tensor = tensor.unsqueeze(0)
 
         # ----------------------------------------------------
@@ -292,7 +321,11 @@ def load_image(image_path, device):
 
         print()
         print("Model input:")
-        print(" ", tuple(tensor.shape))
+
+        print(
+            " ",
+            tuple(tensor.shape)
+        )
 
         print(
             "Input range:",
@@ -302,6 +335,7 @@ def load_image(image_path, device):
         )
 
         return tensor
+
 
     # ========================================================
     # STANDARD IMAGE INPUT
@@ -314,7 +348,9 @@ def load_image(image_path, device):
     # Open image
     # --------------------------------------------------------
 
-    image = Image.open(image_path)
+    image = Image.open(
+        image_path
+    )
 
     print()
     print("Original image:")
@@ -357,7 +393,9 @@ def load_image(image_path, device):
     # Normalize standard images to [0,1]
     # --------------------------------------------------------
 
-    image_array = image_array / 255.0
+    image_array = (
+        image_array / 255.0
+    )
 
     # --------------------------------------------------------
     # Convert:
@@ -369,9 +407,12 @@ def load_image(image_path, device):
     # [1,1,H,W]
     # --------------------------------------------------------
 
-    tensor = torch.from_numpy(image_array)
+    tensor = torch.from_numpy(
+        image_array
+    )
 
     tensor = tensor.unsqueeze(0)
+
     tensor = tensor.unsqueeze(0)
 
     # --------------------------------------------------------
@@ -423,6 +464,7 @@ def save_tensor_as_image(
     # --------------------------------------------------------
 
     tensor = tensor.detach().cpu()
+
     tensor = tensor.squeeze()
 
     # --------------------------------------------------------
@@ -438,10 +480,17 @@ def save_tensor_as_image(
         )
 
     # --------------------------------------------------------
-    # Clamp only for PNG visualization
+    # Clamp output for image saving
+    #
+    # IMPORTANT:
+    # This is only for PNG visualization.
+    # It does NOT modify the model prediction.
     # --------------------------------------------------------
 
-    tensor = tensor.clamp(0.0, 1.0)
+    tensor = tensor.clamp(
+        0.0,
+        1.0
+    )
 
     # --------------------------------------------------------
     # Convert to NumPy
@@ -455,7 +504,9 @@ def save_tensor_as_image(
 
     image_array = (
         image_array * 255.0
-    ).round().astype(np.uint8)
+    ).round().astype(
+        np.uint8
+    )
 
     # --------------------------------------------------------
     # Create PIL image
@@ -470,8 +521,6 @@ def save_tensor_as_image(
     # Create output directory
     # --------------------------------------------------------
 
-    output_path = Path(output_path)
-
     output_path.parent.mkdir(
         parents=True,
         exist_ok=True
@@ -481,11 +530,17 @@ def save_tensor_as_image(
     # Save
     # --------------------------------------------------------
 
-    image.save(output_path)
+    image.save(
+        output_path
+    )
 
     print()
     print("Saved:")
-    print(" ", output_path)
+
+    print(
+        " ",
+        output_path
+    )
 
     print(
         "Output size:",
@@ -511,7 +566,9 @@ def load_model(device):
     # Create model
     # --------------------------------------------------------
 
-    model = SIVAI().to(device)
+    model = SIVAI().to(
+        device
+    )
 
     # --------------------------------------------------------
     # Parameter count
@@ -539,7 +596,9 @@ def load_model(device):
             f"Found parameters   : {total_parameters}\n"
         )
 
-    print("Parameter count: PASS")
+    print(
+        "Parameter count: PASS"
+    )
 
     # --------------------------------------------------------
     # Check checkpoint
@@ -571,11 +630,16 @@ def load_model(device):
     # Support full checkpoint
     # --------------------------------------------------------
 
-    if isinstance(checkpoint, dict):
+    if isinstance(
+        checkpoint,
+        dict
+    ):
 
         if "model_state_dict" in checkpoint:
 
-            state_dict = checkpoint["model_state_dict"]
+            state_dict = checkpoint[
+                "model_state_dict"
+            ]
 
         else:
 
@@ -654,7 +718,9 @@ def run_inference(
         )
 
     print()
-    print("Input shape: PASS")
+    print(
+        "Input shape: PASS"
+    )
 
     # ========================================================
     # INFERENCE
@@ -665,9 +731,15 @@ def run_inference(
     print("RUNNING SIV-AI PHASE 4")
     print("=" * 70)
 
+    # --------------------------------------------------------
+    # Disable gradient calculation
+    # --------------------------------------------------------
+
     with torch.no_grad():
 
-        prediction = model(noisy)
+        prediction = model(
+            noisy
+        )
 
     # --------------------------------------------------------
     # Verify output shape
@@ -694,14 +766,18 @@ def run_inference(
             f"Got     : {tuple(prediction.shape)}"
         )
 
-    print("Output shape: PASS")
+    print(
+        "Output shape: PASS"
+    )
 
     # --------------------------------------------------------
     # Output statistics
     # --------------------------------------------------------
 
     print()
-    print("Output statistics:")
+    print(
+        "Output statistics:"
+    )
 
     print(
         "  Min   :",
@@ -742,6 +818,9 @@ def run_inference(
 # ============================================================
 
 def find_default_input():
+    """
+    If no input is supplied, search the inputs folder.
+    """
 
     INPUT_DIR.mkdir(
         parents=True,
@@ -753,40 +832,16 @@ def find_default_input():
             p
             for p in INPUT_DIR.iterdir()
             if p.is_file()
-            and p.suffix.lower() in SUPPORTED_EXTENSIONS
+            and p.suffix.lower()
+            in SUPPORTED_EXTENSIONS
         ]
     )
 
     if not images:
+
         return None
 
     return images[0]
-
-
-# ============================================================
-# ARGUMENT PARSING
-# ============================================================
-
-def parse_arguments():
-
-    parser = argparse.ArgumentParser(
-        description="SIV-AI Phase-4 Image Restoration"
-    )
-
-    parser.add_argument(
-        "input",
-        nargs="?",
-        default=None,
-        help="Input image or .npy file"
-    )
-
-    parser.add_argument(
-        "--output_dir",
-        default=None,
-        help="Directory where restored PNG will be saved"
-    )
-
-    return parser.parse_args()
 
 
 # ============================================================
@@ -810,7 +865,10 @@ def main():
         else "cpu"
     )
 
-    print("Device:", device)
+    print(
+        "Device:",
+        device
+    )
 
     if torch.cuda.is_available():
 
@@ -820,44 +878,55 @@ def main():
         )
 
     # ========================================================
-    # ARGUMENTS
-    # ========================================================
-
-    args = parse_arguments()
-
-    # ========================================================
     # GET INPUT
     # ========================================================
 
-    if args.input is not None:
+    if len(sys.argv) >= 2:
 
-        image_path = Path(args.input)
+        image_path = Path(
+            sys.argv[1]
+        )
 
     else:
 
         print()
-        print("No input path supplied.")
+        print(
+            "No input path supplied."
+        )
 
         image_path = find_default_input()
 
         if image_path is None:
 
             print()
-            print("No test inputs found.")
+            print(
+                "No test inputs found."
+            )
 
             print()
-            print("Put an input inside:")
-            print(f"  {INPUT_DIR}")
+            print(
+                "Put an input inside:"
+            )
+
+            print(
+                f"  {INPUT_DIR}"
+            )
 
             print()
-            print("Supported formats:")
+            print(
+                "Supported formats:"
+            )
+
             print(
                 "  NPY, PNG, JPG, JPEG, "
                 "BMP, TIFF, WEBP"
             )
 
             print()
-            print("Example:")
+            print(
+                "Example:"
+            )
+
             print(
                 "  python "
                 "inference/infer_phase4.py "
@@ -871,10 +940,13 @@ def main():
             "Using first input from inputs folder:"
         )
 
-        print(" ", image_path)
+        print(
+            " ",
+            image_path
+        )
 
     # ========================================================
-    # RESOLVE RELATIVE INPUT PATH
+    # RESOLVE RELATIVE PATH
     # ========================================================
 
     if not image_path.is_absolute():
@@ -882,31 +954,6 @@ def main():
         image_path = (
             ROOT / image_path
         ).resolve()
-
-    # ========================================================
-    # OUTPUT DIRECTORY
-    # ========================================================
-
-    if args.output_dir:
-
-        output_dir = Path(
-            args.output_dir
-        )
-
-        if not output_dir.is_absolute():
-
-            output_dir = (
-                ROOT / output_dir
-            ).resolve()
-
-    else:
-
-        output_dir = DEFAULT_OUTPUT_DIR
-
-    output_dir.mkdir(
-        parents=True,
-        exist_ok=True
-    )
 
     # ========================================================
     # CREATE OUTPUT FILENAME
@@ -918,14 +965,16 @@ def main():
     )
 
     output_path = (
-        output_dir / output_name
+        OUTPUT_DIR / output_name
     )
 
     # ========================================================
     # LOAD MODEL
     # ========================================================
 
-    model = load_model(device)
+    model = load_model(
+        device
+    )
 
     # ========================================================
     # RUN INFERENCE
@@ -960,8 +1009,13 @@ def main():
     )
 
     print()
-    print("Input  : 128 × 128")
-    print("Output : 256 × 256")
+    print(
+        "Input  : 128 × 128"
+    )
+
+    print(
+        "Output : 256 × 256"
+    )
 
     print()
     print(
@@ -976,4 +1030,5 @@ def main():
 # ============================================================
 
 if __name__ == "__main__":
+
     main()
