@@ -1,5 +1,5 @@
 # \# SIV-AI
-# https://logeshsk-ind.github.io/SIV_AI/#restore
+https://logeshsk-ind.github.io/SIV_AI/
 # \## Semiconductor Image Restoration
 # SIV-AI is a deep-learning image restoration system designed for degraded semiconductor inspection imagery.
 # The system restores noisy and low-resolution grayscale inspection images while preserving important structural and high-frequency details.
