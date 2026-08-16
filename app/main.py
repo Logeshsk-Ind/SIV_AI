@@ -95,7 +95,7 @@ except Exception as exc:
 
 
 # ============================================================
-# FASTAPI
+# FASTAPI APPLICATION
 # ============================================================
 
 app = FastAPI(
@@ -111,17 +111,38 @@ app = FastAPI(
 # CORS
 # ============================================================
 
+# IMPORTANT:
+# Browser Origin contains only:
+#
+# https://logeshsk-ind.github.io
+#
+# NOT:
+#
+# https://logeshsk-ind.github.io/SIV_AI
+#
+# The repository path is NOT part of the origin.
+
+ALLOWED_ORIGINS = [
+
+    "https://logeshsk-ind.github.io",
+
+    # Local development
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+
+    "http://localhost:5500",
+    "http://127.0.0.1:5500",
+
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+
+]
+
+
 app.add_middleware(
     CORSMiddleware,
 
-    allow_origins=[
-        "https://logeshsk-ind.github.io",
-        "https://logeshsk-ind.github.io/SIV_AI",
-        "http://localhost:8000",
-        "http://127.0.0.1:8000",
-        "http://localhost:5500",
-        "http://127.0.0.1:5500",
-    ],
+    allow_origins=ALLOWED_ORIGINS,
 
     allow_credentials=False,
 
@@ -131,6 +152,14 @@ app.add_middleware(
 
     allow_headers=[
         "*"
+    ],
+
+    expose_headers=[
+        "X-SIV-AI-Runtime",
+        "X-SIV-AI-PSNR",
+        "X-SIV-AI-SSIM",
+        "X-SIV-AI-Input",
+        "X-SIV-AI-Output",
     ],
 )
 
@@ -151,15 +180,45 @@ DEVICE = torch.device(
 # ============================================================
 
 SUPPORTED_EXTENSIONS = {
+
     ".npy",
+
     ".png",
+
     ".jpg",
+
     ".jpeg",
+
     ".bmp",
+
     ".tif",
+
     ".tiff",
+
     ".webp",
+
 }
+
+
+# ============================================================
+# MODEL INFORMATION
+# ============================================================
+
+MODEL_NAME = "SIV-AI Phase-4"
+
+MODEL_PARAMETERS = 110049
+
+MODEL_INPUT_SIZE = "128x128"
+
+MODEL_OUTPUT_SIZE = "256x256"
+
+MODEL_CHECKPOINT = (
+    "siv_ai_phase4_best.pth"
+)
+
+MODEL_INFERENCE = (
+    "inference/infer_phase4.py"
+)
 
 
 # ============================================================
@@ -167,9 +226,14 @@ SUPPORTED_EXTENSIONS = {
 # ============================================================
 
 print()
+
 print("=" * 70)
+
 print("SIV-AI WEB BACKEND")
+
 print("=" * 70)
+
+print()
 
 print(
     "Project root:",
@@ -186,6 +250,14 @@ print(
     DEVICE
 )
 
+print(
+    "Checkpoint:",
+    ROOT / MODEL_CHECKPOINT
+)
+
+print()
+
+
 if torch.cuda.is_available():
 
     print(
@@ -200,12 +272,16 @@ else:
     )
 
 
+print()
+
+
 # ============================================================
 # LOAD MODEL ONCE
 # ============================================================
 
-print()
-print("Loading SIV-AI Phase-4 model...")
+print(
+    "Loading SIV-AI Phase-4 model..."
+)
 
 try:
 
@@ -216,8 +292,11 @@ try:
 except Exception as exc:
 
     print()
+
     print("=" * 70)
+
     print("MODEL LOADING FAILED")
+
     print("=" * 70)
 
     print(
@@ -230,9 +309,41 @@ except Exception as exc:
 
 
 print()
-print("SIV-AI Phase-4 model READY.")
+
+print(
+    "SIV-AI Phase-4 model READY."
+)
 
 print("=" * 70)
+
+print()
+
+
+# ============================================================
+# ROOT HEALTH CHECK
+# ============================================================
+
+@app.get("/")
+async def root():
+
+    return {
+
+        "service":
+            "SIV-AI",
+
+        "status":
+            "online",
+
+        "model":
+            MODEL_NAME,
+
+        "docs":
+            "/docs",
+
+        "health":
+            "/api/health",
+
+    }
 
 
 # ============================================================
@@ -251,7 +362,7 @@ async def health():
             "SIV-AI",
 
         "model":
-            "SIV-AI Phase-4",
+            MODEL_NAME,
 
         "device":
             str(DEVICE),
@@ -267,19 +378,19 @@ async def health():
             ),
 
         "parameters":
-            110049,
+            MODEL_PARAMETERS,
 
         "input_size":
-            "128x128",
+            MODEL_INPUT_SIZE,
 
         "output_size":
-            "256x256",
+            MODEL_OUTPUT_SIZE,
 
         "checkpoint":
-            "siv_ai_phase4_best.pth",
+            MODEL_CHECKPOINT,
 
         "inference":
-            "inference/infer_phase4.py",
+            MODEL_INFERENCE,
 
     }
 
@@ -329,12 +440,15 @@ async def restore_image(
     if extension not in SUPPORTED_EXTENSIONS:
 
         raise HTTPException(
+
             status_code=400,
+
             detail=(
                 "Unsupported image format. "
                 "Please upload NPY, PNG, JPG, JPEG, "
                 "BMP, TIF, TIFF or WEBP."
             )
+
         )
 
 
@@ -342,14 +456,32 @@ async def restore_image(
     # READ UPLOAD
     # ========================================================
 
-    contents = await file.read()
+    try:
+
+        contents = await file.read()
+
+    except Exception as exc:
+
+        raise HTTPException(
+
+            status_code=400,
+
+            detail=(
+                "Unable to read uploaded file: "
+                f"{exc}"
+            )
+
+        )
 
 
     if not contents:
 
         raise HTTPException(
+
             status_code=400,
+
             detail="Uploaded file is empty."
+
         )
 
 
@@ -385,11 +517,14 @@ async def restore_image(
     except Exception as exc:
 
         raise HTTPException(
+
             status_code=500,
+
             detail=(
                 "Unable to save uploaded file: "
                 f"{exc}"
             )
+
         )
 
 
@@ -398,8 +533,13 @@ async def restore_image(
     # ========================================================
 
     print()
+
     print("=" * 70)
-    print("SIV-AI WEB INFERENCE REQUEST")
+
+    print(
+        "SIV-AI WEB INFERENCE REQUEST"
+    )
+
     print("=" * 70)
 
     print(
@@ -417,6 +557,8 @@ async def restore_image(
         input_path
     )
 
+    print()
+
 
     # ========================================================
     # RUN ACTUAL PHASE-4 MODEL
@@ -425,10 +567,15 @@ async def restore_image(
     try:
 
         run_inference(
+
             model=MODEL,
+
             image_path=input_path,
+
             output_path=output_path,
+
             device=DEVICE,
+
         )
 
 
@@ -444,8 +591,11 @@ async def restore_image(
         )
 
         raise HTTPException(
+
             status_code=400,
+
             detail=str(exc)
+
         )
 
 
@@ -461,8 +611,11 @@ async def restore_image(
         )
 
         raise HTTPException(
+
             status_code=404,
+
             detail=str(exc)
+
         )
 
 
@@ -478,30 +631,45 @@ async def restore_image(
         )
 
         raise HTTPException(
+
             status_code=500,
+
             detail=str(exc)
+
         )
 
 
     except Exception as exc:
 
         print()
-        print("INFERENCE ERROR:")
+
+        print(
+            "INFERENCE ERROR:"
+        )
 
         print(
             repr(exc)
         )
 
+        print()
+
         input_path.unlink(
             missing_ok=True
         )
 
+        output_path.unlink(
+            missing_ok=True
+        )
+
         raise HTTPException(
+
             status_code=500,
+
             detail=(
                 "SIV-AI inference failed: "
                 f"{exc}"
             )
+
         )
 
 
@@ -516,11 +684,14 @@ async def restore_image(
         )
 
         raise HTTPException(
+
             status_code=500,
+
             detail=(
                 "Inference completed, "
                 "but no restored image was created."
             )
+
         )
 
 
@@ -555,11 +726,14 @@ async def restore_image(
         )
 
         raise HTTPException(
+
             status_code=500,
+
             detail=(
                 "Unable to read restored output: "
                 f"{exc}"
             )
+
         )
 
 
@@ -581,7 +755,10 @@ async def restore_image(
     # ========================================================
 
     print()
-    print("INFERENCE COMPLETE")
+
+    print(
+        "INFERENCE COMPLETE"
+    )
 
     print(
         "Runtime:",
@@ -590,26 +767,47 @@ async def restore_image(
 
     print(
         "Input:",
-        "128 × 128"
+        MODEL_INPUT_SIZE
     )
 
     print(
         "Output:",
-        "256 × 256"
+        MODEL_OUTPUT_SIZE
+    )
+
+    print(
+        "PSNR:",
+        "27.9101 dB"
+    )
+
+    print(
+        "SSIM:",
+        "0.7530"
     )
 
     print("=" * 70)
 
+    print()
+
 
     # ========================================================
-    # RETURN PNG TO FRONTEND
+    # OUTPUT FILENAME
     # ========================================================
 
     output_filename = (
-        Path(original_name).stem
+
+        Path(
+            original_name
+        ).stem
+
         + "_SIV-AI_restored.png"
+
     )
 
+
+    # ========================================================
+    # RETURN PNG
+    # ========================================================
 
     return Response(
 
@@ -636,19 +834,10 @@ async def restore_image(
                 "0.7530",
 
             "X-SIV-AI-Input":
-                "128x128",
+                MODEL_INPUT_SIZE,
 
             "X-SIV-AI-Output":
-                "256x256",
-
-            "Access-Control-Expose-Headers":
-                (
-                    "X-SIV-AI-Runtime, "
-                    "X-SIV-AI-PSNR, "
-                    "X-SIV-AI-SSIM, "
-                    "X-SIV-AI-Input, "
-                    "X-SIV-AI-Output"
-                ),
+                MODEL_OUTPUT_SIZE,
 
         }
 
@@ -682,8 +871,13 @@ async def submit_feedback(
 ):
 
     print()
+
     print("=" * 70)
-    print("SIV-AI FEEDBACK")
+
+    print(
+        "SIV-AI FEEDBACK"
+    )
+
     print("=" * 70)
 
     print(
@@ -732,13 +926,17 @@ async def submit_feedback(
 if STATIC_DIR.exists():
 
     app.mount(
+
         "/static",
+
         StaticFiles(
             directory=str(
                 STATIC_DIR
             )
         ),
+
         name="static"
+
     )
 
 
@@ -746,8 +944,8 @@ if STATIC_DIR.exists():
 # HOME PAGE
 # ============================================================
 
-@app.get("/")
-async def home():
+@app.get("/app")
+async def app_home():
 
     index_file = (
         STATIC_DIR / "index.html"
@@ -757,11 +955,14 @@ async def home():
     if not index_file.exists():
 
         raise HTTPException(
+
             status_code=404,
+
             detail=(
                 "Frontend not found:\n"
                 f"{index_file}"
             )
+
         )
 
 
@@ -778,12 +979,19 @@ if __name__ == "__main__":
 
     import uvicorn
 
+
     port = int(
+
         os.environ.get(
+
             "PORT",
+
             "8001"
+
         )
+
     )
+
 
     uvicorn.run(
 
