@@ -1,0 +1,6322 @@
+========================================
+SIV-AI PROJECT REPORT
+Generated: 08/14/2026 21:25:03
+========================================
+
+[1] PROJECT STRUCTURE
+.gitignore
+evaluate.py
+project_report.txt
+README.md
+requirements.txt
+Test_NoisyLR.zip
+train.py
+train.zip
+.pytest_cache\.gitignore
+.pytest_cache\CACHEDIR.TAG
+.pytest_cache\README.md
+.pytest_cache\v\cache\lastfailed
+.pytest_cache\v\cache\nodeids
+checkpoints\baseline_day2_best.pth
+checkpoints\baseline_day3_best.pth
+checkpoints\residual_day4_best.pth
+checkpoints\wavelet_sr_best.pth
+evaluation\evaluate.py
+evaluation\evaluate_dataset.py
+evaluation\evaluate_dataset_day2.py
+evaluation\evaluate_dataset_day3.py
+evaluation\evaluate_day4.py
+evaluation\evaluate_final_comparison.py
+evaluation\evaluate_wavelet_comparison.py
+evaluation\generate_visual_comparison.py
+experiments\create_final_comparison.py
+experiments\day2_baseline.txt
+experiments\day3_baseline.txt
+experiments\day4_residual.txt
+experiments\day5_final.txt
+experiments\degradation_demo.py
+experiments\inspect_kla_dataset.py
+experiments\inspect_samples.py
+experiments\__init__.py
+inference\infer.py
+inference\infer_day5.py
+models\baseline_sr.py
+models\residual_sr.py
+notebooks\01_degradation_demo.py
+outputs\day2_baseline\ground_truth.png
+outputs\day2_baseline\noisy.png
+outputs\day2_baseline\restored.png
+outputs\day5_final\ground_truth.png
+outputs\day5_final\noisy.png
+outputs\day5_final\restored.png
+outputs\day5_final\web_test_restored.png
+outputs\degraded\blurred.png
+outputs\degraded\degraded.png
+outputs\degraded\noisy.png
+outputs\degraded\original.png
+outputs\final_comparison\final_comparison.png
+outputs\inspection\sample_000000.png
+results\visual_comparison\sample_000480.png
+results\visual_comparison\sample_000658.png
+results\visual_comparison\sample_001361.png
+results\visual_comparison\sample_002485.png
+results\visual_comparison\sample_002959.png
+src\__init__.py
+src\losses\losses.py
+src\models\nafnet_lite.py
+src\models\restormer_lite.py
+src\models\siv_ai.py
+src\models\siv_wavelet_sr.py
+src\models\wavelet_sr.py
+src\preprocessing\degradation.py
+src\preprocessing\__init__.py
+src\wavelet\dwt.py
+tests\test_baseline_model.py
+tests\test_kla_dataset.py
+tests\test_model_with_dataset.py
+tests\test_nafnet_lite.py
+tests\test_residual_model.py
+tests\test_training_step.py
+tests\test_wavelet_sr.py
+training\train.py
+training\train_day4.py
+training\train_wavelet_sr.py
+
+[2] PYTHON FILES
+
+========== evaluate.py ==========
+from evaluation.evaluate import main
+
+if __name__ == "__main__":
+    main()
+
+========== train.py ==========
+
+
+========== data\dataset.py ==========
+
+
+========== data\degradation.py ==========
+
+
+========== evaluation\evaluate.py ==========
+from pathlib import Path
+
+import numpy as np
+from PIL import Image
+from skimage.metrics import peak_signal_noise_ratio
+from skimage.metrics import structural_similarity
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+OUTPUT_DIR = ROOT / "outputs" / "day2_baseline"
+
+RESTORED_PATH = OUTPUT_DIR / "restored.png"
+GT_PATH = OUTPUT_DIR / "ground_truth.png"
+
+
+def load_image(path):
+    """
+    Load a grayscale PNG and convert it to
+    a floating-point array in the range [0, 1].
+    """
+
+    image = Image.open(path).convert("L")
+
+    image = np.asarray(image).astype(np.float32) / 255.0
+
+    return image
+
+
+def main():
+
+    # Load restored image and ground truth
+    restored = load_image(RESTORED_PATH)
+    gt = load_image(GT_PATH)
+
+    print("Restored shape:", restored.shape)
+    print("GT shape      :", gt.shape)
+
+    # Verify dimensions
+    assert restored.shape == gt.shape
+
+    # Calculate PSNR
+    psnr = peak_signal_noise_ratio(
+        gt,
+        restored,
+        data_range=1.0
+    )
+
+    # Calculate SSIM
+    ssim = structural_similarity(
+        gt,
+        restored,
+        data_range=1.0
+    )
+
+    print()
+    print("Day 2 Baseline Results")
+    print("----------------------")
+    print(f"PSNR: {psnr:.4f} dB")
+    print(f"SSIM: {ssim:.4f}")
+
+
+if __name__ == "__main__":
+    main()
+
+========== evaluation\evaluate_dataset.py ==========
+from pathlib import Path
+import sys
+
+import numpy as np
+import torch
+from skimage.metrics import peak_signal_noise_ratio
+from skimage.metrics import structural_similarity
+from torch.utils.data import DataLoader, Subset
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from src.data.kla_dataset import KLADataset
+from models.baseline_sr import BaselineSR
+
+
+DATA_DIR = ROOT / "data" / "raw" / "train" / "train"
+CHECKPOINT = ROOT / "checkpoints" / "baseline_day3_best.pth"
+
+BATCH_SIZE = 4
+VAL_RATIO = 0.20
+SEED = 42
+
+
+def main():
+
+    device = torch.device(
+        "cuda" if torch.cuda.is_available() else "cpu"
+    )
+
+    print("Device:", device)
+
+    if device.type == "cuda":
+        print("GPU:", torch.cuda.get_device_name(0))
+
+    dataset = KLADataset(DATA_DIR)
+
+    print("Total samples:", len(dataset))
+
+    # Deterministic 80/20 split
+    generator = torch.Generator().manual_seed(SEED)
+
+    indices = torch.randperm(
+        len(dataset),
+        generator=generator
+    ).tolist()
+
+    val_size = int(len(dataset) * VAL_RATIO)
+
+    val_indices = indices[-val_size:]
+
+    val_dataset = Subset(
+        dataset,
+        val_indices
+    )
+
+    print("Validation samples:", len(val_dataset))
+
+    loader = DataLoader(
+        val_dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=False,
+        num_workers=0,
+        pin_memory=(device.type == "cuda"),
+    )
+
+    # Load model
+    model = BaselineSR().to(device)
+
+    checkpoint = torch.load(
+        CHECKPOINT,
+        map_location=device
+    )
+
+    model.load_state_dict(
+        checkpoint["model_state_dict"]
+    )
+
+    model.eval()
+
+    print("Checkpoint loaded successfully")
+
+    psnr_values = []
+    ssim_values = []
+
+    with torch.no_grad():
+
+        for batch_idx, batch in enumerate(loader):
+
+            noisy = batch["noisy"].to(device)
+            gt = batch["gt"].numpy()
+
+            prediction = model(noisy)
+
+            prediction = (
+                prediction
+                .clamp(0, 1)
+                .cpu()
+                .numpy()
+            )
+
+            for pred, target in zip(
+                prediction,
+                gt
+            ):
+
+                pred_image = pred[0]
+                target_image = target[0]
+
+                psnr = peak_signal_noise_ratio(
+                    target_image,
+                    pred_image,
+                    data_range=1.0
+                )
+
+                ssim = structural_similarity(
+                    target_image,
+                    pred_image,
+                    data_range=1.0
+                )
+
+                psnr_values.append(psnr)
+                ssim_values.append(ssim)
+
+            if (batch_idx + 1) % 50 == 0:
+                print(
+                    f"Processed "
+                    f"{(batch_idx + 1) * BATCH_SIZE}/"
+                    f"{len(val_dataset)}"
+                )
+
+    mean_psnr = float(np.mean(psnr_values))
+    mean_ssim = float(np.mean(ssim_values))
+
+    print()
+    print("Day 3 Baseline Dataset Evaluation")
+    print("----------------------------------")
+    print(f"Validation samples: {len(val_dataset)}")
+    print(f"Mean PSNR: {mean_psnr:.4f} dB")
+    print(f"Mean SSIM: {mean_ssim:.4f}")
+
+
+if __name__ == "__main__":
+    main()
+
+========== evaluation\evaluate_dataset_day2.py ==========
+from pathlib import Path
+import sys
+
+import numpy as np
+import torch
+from torch.utils.data import DataLoader, Subset
+from skimage.metrics import peak_signal_noise_ratio
+from skimage.metrics import structural_similarity
+
+
+# --------------------------------------------------
+# Add project root to Python path
+# --------------------------------------------------
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+
+from src.data.kla_dataset import KLADataset
+from models.baseline_sr import BaselineSR
+
+
+# --------------------------------------------------
+# Configuration
+# --------------------------------------------------
+
+DATA_DIR = ROOT / "data" / "raw" / "train" / "train"
+
+# IMPORTANT:
+# This file evaluates the Day 2 checkpoint.
+CHECKPOINT = ROOT / "checkpoints" / "baseline_day2_best.pth"
+
+BATCH_SIZE = 1
+SEED = 42
+VAL_RATIO = 0.2
+
+
+# --------------------------------------------------
+# Main evaluation
+# --------------------------------------------------
+
+def main():
+
+    # --------------------------------------------------
+    # Device
+    # --------------------------------------------------
+
+    device = torch.device(
+        "cuda" if torch.cuda.is_available() else "cpu"
+    )
+
+    print("Device:", device)
+
+    if device.type == "cuda":
+        print("GPU:", torch.cuda.get_device_name(0))
+
+
+    # --------------------------------------------------
+    # Load complete dataset
+    # --------------------------------------------------
+
+    dataset = KLADataset(DATA_DIR)
+
+    print("Total samples:", len(dataset))
+
+
+    # --------------------------------------------------
+    # Reproduce the same validation split
+    # --------------------------------------------------
+
+    generator = torch.Generator().manual_seed(SEED)
+
+    indices = torch.randperm(
+        len(dataset),
+        generator=generator
+    ).tolist()
+
+    val_size = int(len(dataset) * VAL_RATIO)
+
+    val_indices = indices[-val_size:]
+
+    validation_dataset = Subset(
+        dataset,
+        val_indices
+    )
+
+    print("Validation samples:", len(validation_dataset))
+
+
+    # --------------------------------------------------
+    # DataLoader
+    # --------------------------------------------------
+
+    validation_loader = DataLoader(
+        validation_dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=False,
+        num_workers=0,
+        pin_memory=(device.type == "cuda"),
+    )
+
+
+    # --------------------------------------------------
+    # Create model
+    # --------------------------------------------------
+
+    model = BaselineSR().to(device)
+
+
+    # --------------------------------------------------
+    # Load Day 2 checkpoint
+    # --------------------------------------------------
+
+    if not CHECKPOINT.exists():
+        raise FileNotFoundError(
+            f"Checkpoint not found: {CHECKPOINT}"
+        )
+
+    checkpoint = torch.load(
+        CHECKPOINT,
+        map_location=device
+    )
+
+    model.load_state_dict(
+        checkpoint["model_state_dict"]
+    )
+
+    model.eval()
+
+    print("Checkpoint loaded successfully")
+
+
+    # --------------------------------------------------
+    # Evaluation
+    # --------------------------------------------------
+
+    total_psnr = 0.0
+    total_ssim = 0.0
+
+    processed = 0
+
+    with torch.no_grad():
+
+        for batch in validation_loader:
+
+            noisy = batch["noisy"].to(device)
+            gt = batch["gt"].to(device)
+
+            prediction = model(noisy)
+
+            # Remove batch/channel dimensions
+            prediction = prediction.squeeze(0).squeeze(0)
+            gt = gt.squeeze(0).squeeze(0)
+
+            prediction = prediction.cpu().numpy()
+            gt = gt.cpu().numpy()
+
+            # Keep prediction in valid image range
+            prediction = np.clip(
+                prediction,
+                0.0,
+                1.0
+            )
+
+            # PSNR
+            psnr = peak_signal_noise_ratio(
+                gt,
+                prediction,
+                data_range=1.0
+            )
+
+            # SSIM
+            ssim = structural_similarity(
+                gt,
+                prediction,
+                data_range=1.0
+            )
+
+            total_psnr += psnr
+            total_ssim += ssim
+
+            processed += 1
+
+            if processed % 200 == 0:
+                print(
+                    f"Processed {processed}/"
+                    f"{len(validation_dataset)}"
+                )
+
+
+    # --------------------------------------------------
+    # Calculate mean metrics
+    # --------------------------------------------------
+
+    mean_psnr = total_psnr / len(validation_dataset)
+    mean_ssim = total_ssim / len(validation_dataset)
+
+
+    # --------------------------------------------------
+    # Final results
+    # --------------------------------------------------
+
+    print()
+    print("Day 2 Baseline Dataset Evaluation")
+    print("----------------------------------")
+    print(f"Validation samples: {len(val_indices)}")
+    print(f"Mean PSNR: {mean_psnr:.4f} dB")
+    print(f"Mean SSIM: {mean_ssim:.4f}")
+
+
+# --------------------------------------------------
+# Entry point
+# --------------------------------------------------
+
+if __name__ == "__main__":
+    main()
+
+========== evaluation\evaluate_dataset_day3.py ==========
+from pathlib import Path
+import sys
+
+import numpy as np
+import torch
+from torch.utils.data import DataLoader, Subset
+from skimage.metrics import peak_signal_noise_ratio
+from skimage.metrics import structural_similarity
+
+
+# --------------------------------------------------
+# Add project root to Python path
+# --------------------------------------------------
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+
+from src.data.kla_dataset import KLADataset
+from models.baseline_sr import BaselineSR
+
+
+# --------------------------------------------------
+# Configuration
+# --------------------------------------------------
+
+DATA_DIR = ROOT / "data" / "raw" / "train" / "train"
+
+# IMPORTANT:
+# This file evaluates the Day 2 checkpoint.
+CHECKPOINT = ROOT / "checkpoints" / "baseline_day3_best.pth"
+
+BATCH_SIZE = 1
+SEED = 42
+VAL_RATIO = 0.2
+
+
+# --------------------------------------------------
+# Main evaluation
+# --------------------------------------------------
+
+def main():
+
+    # --------------------------------------------------
+    # Device
+    # --------------------------------------------------
+
+    device = torch.device(
+        "cuda" if torch.cuda.is_available() else "cpu"
+    )
+
+    print("Device:", device)
+
+    if device.type == "cuda":
+        print("GPU:", torch.cuda.get_device_name(0))
+
+
+    # --------------------------------------------------
+    # Load complete dataset
+    # --------------------------------------------------
+
+    dataset = KLADataset(DATA_DIR)
+
+    print("Total samples:", len(dataset))
+
+
+    # --------------------------------------------------
+    # Reproduce the same validation split
+    # --------------------------------------------------
+
+    generator = torch.Generator().manual_seed(SEED)
+
+    indices = torch.randperm(
+        len(dataset),
+        generator=generator
+    ).tolist()
+
+    val_size = int(len(dataset) * VAL_RATIO)
+
+    val_indices = indices[-val_size:]
+
+    validation_dataset = Subset(
+        dataset,
+        val_indices
+    )
+
+    print("Validation samples:", len(validation_dataset))
+
+
+    # --------------------------------------------------
+    # DataLoader
+    # --------------------------------------------------
+
+    validation_loader = DataLoader(
+        validation_dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=False,
+        num_workers=0,
+        pin_memory=(device.type == "cuda"),
+    )
+
+
+    # --------------------------------------------------
+    # Create model
+    # --------------------------------------------------
+
+    model = BaselineSR().to(device)
+
+
+    # --------------------------------------------------
+    # Load Day 2 checkpoint
+    # --------------------------------------------------
+
+    if not CHECKPOINT.exists():
+        raise FileNotFoundError(
+            f"Checkpoint not found: {CHECKPOINT}"
+        )
+
+    checkpoint = torch.load(
+        CHECKPOINT,
+        map_location=device
+    )
+
+    model.load_state_dict(
+        checkpoint["model_state_dict"]
+    )
+
+    model.eval()
+
+    print("Checkpoint loaded successfully")
+
+
+    # --------------------------------------------------
+    # Evaluation
+    # --------------------------------------------------
+
+    total_psnr = 0.0
+    total_ssim = 0.0
+
+    processed = 0
+
+    with torch.no_grad():
+
+        for batch in validation_loader:
+
+            noisy = batch["noisy"].to(device)
+            gt = batch["gt"].to(device)
+
+            prediction = model(noisy)
+
+            # Remove batch/channel dimensions
+            prediction = prediction.squeeze(0).squeeze(0)
+            gt = gt.squeeze(0).squeeze(0)
+
+            prediction = prediction.cpu().numpy()
+            gt = gt.cpu().numpy()
+
+            # Keep prediction in valid image range
+            prediction = np.clip(
+                prediction,
+                0.0,
+                1.0
+            )
+
+            # PSNR
+            psnr = peak_signal_noise_ratio(
+                gt,
+                prediction,
+                data_range=1.0
+            )
+
+            # SSIM
+            ssim = structural_similarity(
+                gt,
+                prediction,
+                data_range=1.0
+            )
+
+            total_psnr += psnr
+            total_ssim += ssim
+
+            processed += 1
+
+            if processed % 200 == 0:
+                print(
+                    f"Processed {processed}/"
+                    f"{len(validation_dataset)}"
+                )
+
+
+    # --------------------------------------------------
+    # Calculate mean metrics
+    # --------------------------------------------------
+
+    mean_psnr = total_psnr / len(validation_dataset)
+    mean_ssim = total_ssim / len(validation_dataset)
+
+
+    # --------------------------------------------------
+    # Final results
+    # --------------------------------------------------
+
+    print()
+    print("Day 3 Baseline Dataset Evaluation")
+    print("----------------------------------")
+    print(f"Validation samples: {len(val_indices)}")
+    print(f"Mean PSNR: {mean_psnr:.4f} dB")
+    print(f"Mean SSIM: {mean_ssim:.4f}")
+
+
+# --------------------------------------------------
+# Entry point
+# --------------------------------------------------
+
+if __name__ == "__main__":
+    main()
+
+========== evaluation\evaluate_day4.py ==========
+from pathlib import Path
+import sys
+
+import numpy as np
+import torch
+from torch.utils.data import DataLoader, Subset
+from skimage.metrics import peak_signal_noise_ratio
+from skimage.metrics import structural_similarity
+
+
+# --------------------------------------------------
+# Project root
+# --------------------------------------------------
+
+ROOT = Path(__file__).resolve().parents[1]
+
+sys.path.insert(
+    0,
+    str(ROOT)
+)
+
+
+from src.data.kla_dataset import KLADataset
+from models.residual_sr import ResidualSR
+
+
+# --------------------------------------------------
+# Paths
+# --------------------------------------------------
+
+DATA_DIR = (
+    ROOT
+    / "data"
+    / "raw"
+    / "train"
+    / "train"
+)
+
+CHECKPOINT = (
+    ROOT
+    / "checkpoints"
+    / "residual_day4_best.pth"
+)
+
+
+# --------------------------------------------------
+# Configuration
+# --------------------------------------------------
+
+SEED = 42
+VAL_RATIO = 0.2
+
+BATCH_SIZE = 1
+
+
+# --------------------------------------------------
+# Main
+# --------------------------------------------------
+
+def main():
+
+    # --------------------------------------------------
+    # Device
+    # --------------------------------------------------
+
+    device = torch.device(
+        "cuda"
+        if torch.cuda.is_available()
+        else "cpu"
+    )
+
+    print("Device:", device)
+
+    if device.type == "cuda":
+
+        print(
+            "GPU:",
+            torch.cuda.get_device_name(0)
+        )
+
+    # --------------------------------------------------
+    # Dataset
+    # --------------------------------------------------
+
+    dataset = KLADataset(DATA_DIR)
+
+    print(
+        "Total samples:",
+        len(dataset)
+    )
+
+    # --------------------------------------------------
+    # Same validation split as Day 2 / Day 3
+    # --------------------------------------------------
+
+    generator = torch.Generator().manual_seed(
+        SEED
+    )
+
+    indices = torch.randperm(
+        len(dataset),
+        generator=generator
+    ).tolist()
+
+    val_size = int(
+        len(dataset) * VAL_RATIO
+    )
+
+    val_indices = indices[-val_size:]
+
+    print(
+        "Validation samples:",
+        len(val_indices)
+    )
+
+    val_dataset = Subset(
+        dataset,
+        val_indices
+    )
+
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=False,
+        num_workers=0
+    )
+
+    # --------------------------------------------------
+    # Model
+    # --------------------------------------------------
+
+    model = ResidualSR().to(device)
+
+    checkpoint = torch.load(
+        CHECKPOINT,
+        map_location=device
+    )
+
+    model.load_state_dict(
+        checkpoint["model_state_dict"]
+    )
+
+    model.eval()
+
+    print(
+        "Checkpoint loaded successfully"
+    )
+
+    # --------------------------------------------------
+    # Metrics
+    # --------------------------------------------------
+
+    psnr_values = []
+    ssim_values = []
+
+    # --------------------------------------------------
+    # Evaluation
+    # --------------------------------------------------
+
+    with torch.no_grad():
+
+        for batch_idx, batch in enumerate(
+            val_loader
+        ):
+
+            noisy = batch["noisy"].to(
+                device
+            )
+
+            gt = batch["gt"].to(
+                device
+            )
+
+            prediction = model(
+                noisy
+            )
+
+            prediction = prediction.clamp(
+                0,
+                1
+            )
+
+            # Convert to NumPy
+            prediction_np = (
+                prediction[0, 0]
+                .cpu()
+                .numpy()
+            )
+
+            gt_np = (
+                gt[0, 0]
+                .cpu()
+                .numpy()
+            )
+
+            # PSNR
+            psnr = peak_signal_noise_ratio(
+                gt_np,
+                prediction_np,
+                data_range=1.0
+            )
+
+            # SSIM
+            ssim = structural_similarity(
+                gt_np,
+                prediction_np,
+                data_range=1.0
+            )
+
+            psnr_values.append(psnr)
+            ssim_values.append(ssim)
+
+            if (
+                (batch_idx + 1) % 200
+                == 0
+            ):
+
+                print(
+                    f"Processed "
+                    f"{batch_idx + 1}/"
+                    f"{len(val_loader)}"
+                )
+
+    # --------------------------------------------------
+    # Mean metrics
+    # --------------------------------------------------
+
+    mean_psnr = float(
+        np.mean(psnr_values)
+    )
+
+    mean_ssim = float(
+        np.mean(ssim_values)
+    )
+
+    # --------------------------------------------------
+    # Results
+    # --------------------------------------------------
+
+    print()
+
+    print(
+        "Day 4 Residual Dataset Evaluation"
+    )
+
+    print(
+        "----------------------------------"
+    )
+
+    print(
+        f"Validation samples: "
+        f"{len(val_indices)}"
+    )
+
+    print(
+        f"Mean PSNR: "
+        f"{mean_psnr:.4f} dB"
+    )
+
+    print(
+        f"Mean SSIM: "
+        f"{mean_ssim:.4f}"
+    )
+
+
+# --------------------------------------------------
+# Entry point
+# --------------------------------------------------
+
+if __name__ == "__main__":
+    main()
+
+========== evaluation\evaluate_final_comparison.py ==========
+from pathlib import Path
+import sys
+
+import numpy as np
+import torch
+from torch.utils.data import DataLoader, Subset
+from skimage.metrics import peak_signal_noise_ratio
+from skimage.metrics import structural_similarity
+
+
+# ============================================================
+# Project root
+# ============================================================
+
+ROOT = Path(__file__).resolve().parents[1]
+
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+
+# ============================================================
+# Project imports
+# ============================================================
+
+from src.data.kla_dataset import KLADataset
+
+from models.baseline_sr import BaselineSR
+from models.residual_sr import ResidualSR
+
+from src.models.wavelet_sr import WaveletSR
+
+
+# ============================================================
+# Configuration
+# ============================================================
+
+DATA_DIR = (
+    ROOT
+    / "data"
+    / "raw"
+    / "train"
+    / "train"
+)
+
+BATCH_SIZE = 1
+
+SEED = 42
+
+VAL_RATIO = 0.20
+
+
+# ============================================================
+# Checkpoints
+# ============================================================
+
+CHECKPOINTS = {
+
+    "Day 2 Baseline":
+        ROOT / "checkpoints" / "baseline_day2_best.pth",
+
+    "Day 3 Baseline":
+        ROOT / "checkpoints" / "baseline_day3_best.pth",
+
+    "Day 4 Residual":
+        ROOT / "checkpoints" / "residual_day4_best.pth",
+
+    "WaveletSR":
+        ROOT / "checkpoints" / "wavelet_sr_best.pth",
+}
+
+
+# ============================================================
+# Model constructors
+# ============================================================
+
+def create_model(name):
+
+    if name == "Day 2 Baseline":
+        return BaselineSR()
+
+    if name == "Day 3 Baseline":
+        return BaselineSR()
+
+    if name == "Day 4 Residual":
+        return ResidualSR()
+
+    if name == "WaveletSR":
+        return WaveletSR()
+
+    raise ValueError(
+        f"Unknown model: {name}"
+    )
+
+
+# ============================================================
+# Parameter count
+# ============================================================
+
+def count_parameters(model):
+
+    return sum(
+        p.numel()
+        for p in model.parameters()
+        if p.requires_grad
+    )
+
+
+# ============================================================
+# Main
+# ============================================================
+
+def main():
+
+    print()
+    print("=" * 70)
+    print("SIV-AI FINAL MODEL COMPARISON")
+    print("=" * 70)
+
+
+    # --------------------------------------------------------
+    # Device
+    # --------------------------------------------------------
+
+    device = torch.device(
+        "cuda"
+        if torch.cuda.is_available()
+        else "cpu"
+    )
+
+    print("Device:", device)
+
+    if device.type == "cuda":
+
+        print(
+            "GPU:",
+            torch.cuda.get_device_name(0)
+        )
+
+
+    # --------------------------------------------------------
+    # Dataset
+    # --------------------------------------------------------
+
+    dataset = KLADataset(DATA_DIR)
+
+    print(
+        "Total samples:",
+        len(dataset)
+    )
+
+
+    # --------------------------------------------------------
+    # Reproduce exact validation split
+    # --------------------------------------------------------
+
+    generator = torch.Generator().manual_seed(SEED)
+
+    indices = torch.randperm(
+        len(dataset),
+        generator=generator
+    ).tolist()
+
+    val_size = int(
+        len(dataset) * VAL_RATIO
+    )
+
+    val_indices = indices[-val_size:]
+
+
+    validation_dataset = Subset(
+        dataset,
+        val_indices
+    )
+
+
+    print(
+        "Validation samples:",
+        len(validation_dataset)
+    )
+
+
+    # --------------------------------------------------------
+    # DataLoader
+    # --------------------------------------------------------
+
+    validation_loader = DataLoader(
+        validation_dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=False,
+        num_workers=0,
+        pin_memory=(device.type == "cuda"),
+    )
+
+
+    # --------------------------------------------------------
+    # Store results
+    # --------------------------------------------------------
+
+    results = {}
+
+
+    # ========================================================
+    # Evaluate every model
+    # ========================================================
+
+    for model_name, checkpoint_path in CHECKPOINTS.items():
+
+        print()
+        print("-" * 70)
+        print(
+            f"Evaluating: {model_name}"
+        )
+        print("-" * 70)
+
+
+        # ----------------------------------------------------
+        # Check checkpoint
+        # ----------------------------------------------------
+
+        if not checkpoint_path.exists():
+
+            raise FileNotFoundError(
+                f"Checkpoint not found: "
+                f"{checkpoint_path}"
+            )
+
+
+        # ----------------------------------------------------
+        # Create model
+        # ----------------------------------------------------
+
+        model = create_model(
+            model_name
+        ).to(device)
+
+
+        # ----------------------------------------------------
+        # Load checkpoint
+        # ----------------------------------------------------
+
+        checkpoint = torch.load(
+            checkpoint_path,
+            map_location=device
+        )
+
+
+        model.load_state_dict(
+            checkpoint["model_state_dict"]
+        )
+
+        model.eval()
+
+
+        # ----------------------------------------------------
+        # Parameter count
+        # ----------------------------------------------------
+
+        parameters = count_parameters(
+            model
+        )
+
+
+        print(
+            "Checkpoint epoch:",
+            checkpoint.get("epoch")
+        )
+
+        print(
+            "Validation loss:",
+            checkpoint.get("val_loss")
+        )
+
+        print(
+            "Parameters:",
+            parameters
+        )
+
+
+        # ----------------------------------------------------
+        # Metric accumulators
+        # ----------------------------------------------------
+
+        psnr_values = []
+
+        ssim_values = []
+
+
+        # ----------------------------------------------------
+        # Evaluation
+        # ----------------------------------------------------
+
+        with torch.no_grad():
+
+            for batch_idx, batch in enumerate(
+                validation_loader,
+                start=1
+            ):
+
+                noisy = batch["noisy"].to(
+                    device,
+                    non_blocking=True
+                )
+
+                gt = batch["gt"].to(
+                    device,
+                    non_blocking=True
+                )
+
+
+                # Forward pass
+
+                prediction = model(
+                    noisy
+                )
+
+
+                # Valid image range
+
+                prediction = prediction.clamp(
+                    0.0,
+                    1.0
+                )
+
+
+                # Convert first image to NumPy
+
+                prediction_np = (
+                    prediction[0, 0]
+                    .cpu()
+                    .numpy()
+                )
+
+                gt_np = (
+                    gt[0, 0]
+                    .cpu()
+                    .numpy()
+                )
+
+
+                # ------------------------------------------------
+                # PSNR
+                # ------------------------------------------------
+
+                psnr = peak_signal_noise_ratio(
+                    gt_np,
+                    prediction_np,
+                    data_range=1.0
+                )
+
+
+                # ------------------------------------------------
+                # SSIM
+                # ------------------------------------------------
+
+                ssim = structural_similarity(
+                    gt_np,
+                    prediction_np,
+                    data_range=1.0
+                )
+
+
+                psnr_values.append(
+                    psnr
+                )
+
+                ssim_values.append(
+                    ssim
+                )
+
+
+                # ------------------------------------------------
+                # Progress
+                # ------------------------------------------------
+
+                if batch_idx % 200 == 0:
+
+                    print(
+                        f"Processed "
+                        f"{batch_idx}/"
+                        f"{len(validation_loader)}"
+                    )
+
+
+        # ----------------------------------------------------
+        # Mean metrics
+        # ----------------------------------------------------
+
+        mean_psnr = float(
+            np.mean(psnr_values)
+        )
+
+        mean_ssim = float(
+            np.mean(ssim_values)
+        )
+
+
+        # ----------------------------------------------------
+        # Save results
+        # ----------------------------------------------------
+
+        results[model_name] = {
+
+            "psnr":
+                mean_psnr,
+
+            "ssim":
+                mean_ssim,
+
+            "parameters":
+                parameters,
+
+            "epoch":
+                checkpoint.get("epoch"),
+
+            "val_loss":
+                checkpoint.get("val_loss"),
+        }
+
+
+        print()
+        print(
+            f"{model_name} Results"
+        )
+
+        print(
+            f"PSNR: {mean_psnr:.4f} dB"
+        )
+
+        print(
+            f"SSIM: {mean_ssim:.4f}"
+        )
+
+
+    # ========================================================
+    # Final comparison
+    # ========================================================
+
+    baseline_psnr = results[
+        "Day 2 Baseline"
+    ]["psnr"]
+
+    baseline_ssim = results[
+        "Day 2 Baseline"
+    ]["ssim"]
+
+
+    print()
+    print()
+    print("=" * 90)
+    print("FINAL SIV-AI MODEL COMPARISON")
+    print("=" * 90)
+
+    print()
+
+    print(
+        f"{'Model':<20}"
+        f"{'PSNR (dB)':>14}"
+        f"{'SSIM':>12}"
+        f"{'Parameters':>16}"
+        f"{'ÃŽâ€ PSNR':>14}"
+        f"{'ÃŽâ€ SSIM':>14}"
+    )
+
+    print("-" * 90)
+
+
+    for model_name in CHECKPOINTS:
+
+        result = results[
+            model_name
+        ]
+
+        delta_psnr = (
+            result["psnr"]
+            - baseline_psnr
+        )
+
+        delta_ssim = (
+            result["ssim"]
+            - baseline_ssim
+        )
+
+
+        print(
+            f"{model_name:<20}"
+            f"{result['psnr']:>14.4f}"
+            f"{result['ssim']:>12.4f}"
+            f"{result['parameters']:>16,}"
+            f"{delta_psnr:>+14.4f}"
+            f"{delta_ssim:>+14.4f}"
+        )
+
+
+    # ========================================================
+    # Best models
+    # ========================================================
+
+    best_psnr_model = max(
+        results,
+        key=lambda name:
+            results[name]["psnr"]
+    )
+
+    best_ssim_model = max(
+        results,
+        key=lambda name:
+            results[name]["ssim"]
+    )
+
+
+    print()
+    print("=" * 90)
+
+    print(
+        "Best PSNR:",
+        best_psnr_model,
+        f"({results[best_psnr_model]['psnr']:.4f} dB)"
+    )
+
+    print(
+        "Best SSIM:",
+        best_ssim_model,
+        f"({results[best_ssim_model]['ssim']:.4f})"
+    )
+
+    print("=" * 90)
+
+
+# ============================================================
+# Entry point
+# ============================================================
+
+if __name__ == "__main__":
+    main()
+
+========== evaluation\evaluate_wavelet_comparison.py ==========
+from pathlib import Path
+import sys
+
+import numpy as np
+import torch
+from torch.utils.data import DataLoader, Subset
+from skimage.metrics import peak_signal_noise_ratio
+from skimage.metrics import structural_similarity
+
+
+# ============================================================
+# Project root
+# ============================================================
+
+ROOT = Path(__file__).resolve().parents[1]
+
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+
+# ============================================================
+# Project imports
+# ============================================================
+
+from src.data.kla_dataset import KLADataset
+from src.models.wavelet_sr import WaveletSR
+
+
+# ============================================================
+# Paths
+# ============================================================
+
+DATA_DIR = (
+    ROOT
+    / "data"
+    / "raw"
+    / "train"
+    / "train"
+)
+
+CHECKPOINT = (
+    ROOT
+    / "checkpoints"
+    / "wavelet_sr_best.pth"
+)
+
+
+# ============================================================
+# Configuration
+# ============================================================
+
+BATCH_SIZE = 1
+SEED = 42
+VAL_RATIO = 0.20
+
+
+# ============================================================
+# Main
+# ============================================================
+
+def main():
+
+    # --------------------------------------------------------
+    # Device
+    # --------------------------------------------------------
+
+    device = torch.device(
+        "cuda"
+        if torch.cuda.is_available()
+        else "cpu"
+    )
+
+    print("Device:", device)
+
+    if device.type == "cuda":
+        print(
+            "GPU:",
+            torch.cuda.get_device_name(0)
+        )
+
+
+    # --------------------------------------------------------
+    # Dataset
+    # --------------------------------------------------------
+
+    dataset = KLADataset(DATA_DIR)
+
+    print(
+        "Total samples:",
+        len(dataset)
+    )
+
+
+    # --------------------------------------------------------
+    # Reproduce exact validation split
+    # --------------------------------------------------------
+
+    generator = torch.Generator().manual_seed(SEED)
+
+    indices = torch.randperm(
+        len(dataset),
+        generator=generator
+    ).tolist()
+
+    val_size = int(
+        len(dataset) * VAL_RATIO
+    )
+
+    val_indices = indices[-val_size:]
+
+    validation_dataset = Subset(
+        dataset,
+        val_indices
+    )
+
+    print(
+        "Validation samples:",
+        len(validation_dataset)
+    )
+
+
+    # --------------------------------------------------------
+    # DataLoader
+    # --------------------------------------------------------
+
+    validation_loader = DataLoader(
+        validation_dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=False,
+        num_workers=0,
+        pin_memory=(device.type == "cuda"),
+    )
+
+
+    # --------------------------------------------------------
+    # Model
+    # --------------------------------------------------------
+
+    model = WaveletSR().to(device)
+
+
+    # --------------------------------------------------------
+    # Checkpoint
+    # --------------------------------------------------------
+
+    if not CHECKPOINT.exists():
+
+        raise FileNotFoundError(
+            f"Checkpoint not found: {CHECKPOINT}"
+        )
+
+
+    checkpoint = torch.load(
+        CHECKPOINT,
+        map_location=device
+    )
+
+
+    model.load_state_dict(
+        checkpoint["model_state_dict"]
+    )
+
+    model.eval()
+
+
+    print(
+        "Checkpoint loaded successfully"
+    )
+
+    print(
+        "Checkpoint epoch:",
+        checkpoint["epoch"]
+    )
+
+    print(
+        "Checkpoint validation loss:",
+        checkpoint["val_loss"]
+    )
+
+
+    # --------------------------------------------------------
+    # Parameter count
+    # --------------------------------------------------------
+
+    parameters = sum(
+        p.numel()
+        for p in model.parameters()
+    )
+
+    print(
+        "Model parameters:",
+        parameters
+    )
+
+
+    # --------------------------------------------------------
+    # Evaluation
+    # --------------------------------------------------------
+
+    total_psnr = 0.0
+    total_ssim = 0.0
+
+    processed = 0
+
+
+    with torch.no_grad():
+
+        for batch in validation_loader:
+
+            noisy = batch["noisy"].to(device)
+
+            gt = batch["gt"].to(device)
+
+
+            # Forward pass
+
+            prediction = model(noisy)
+
+
+            # Keep image range valid
+
+            prediction = prediction.clamp(
+                0.0,
+                1.0
+            )
+
+
+            # Remove batch/channel dimensions
+
+            prediction_np = (
+                prediction[0, 0]
+                .cpu()
+                .numpy()
+            )
+
+            gt_np = (
+                gt[0, 0]
+                .cpu()
+                .numpy()
+            )
+
+
+            # ------------------------------------------------
+            # PSNR
+            # ------------------------------------------------
+
+            psnr = peak_signal_noise_ratio(
+                gt_np,
+                prediction_np,
+                data_range=1.0
+            )
+
+
+            # ------------------------------------------------
+            # SSIM
+            # ------------------------------------------------
+
+            ssim = structural_similarity(
+                gt_np,
+                prediction_np,
+                data_range=1.0
+            )
+
+
+            total_psnr += psnr
+
+            total_ssim += ssim
+
+            processed += 1
+
+
+            if processed % 200 == 0:
+
+                print(
+                    f"Processed {processed}/"
+                    f"{len(validation_dataset)}"
+                )
+
+
+    # --------------------------------------------------------
+    # Mean metrics
+    # --------------------------------------------------------
+
+    mean_psnr = (
+        total_psnr
+        / len(validation_dataset)
+    )
+
+    mean_ssim = (
+        total_ssim
+        / len(validation_dataset)
+    )
+
+
+    # --------------------------------------------------------
+    # Final result
+    # --------------------------------------------------------
+
+    print()
+
+    print(
+        "SIV-AI WaveletSR Dataset Evaluation"
+    )
+
+    print(
+        "------------------------------------"
+    )
+
+    print(
+        f"Validation samples: "
+        f"{len(validation_dataset)}"
+    )
+
+    print(
+        f"Model parameters: "
+        f"{parameters}"
+    )
+
+    print(
+        f"Mean PSNR: "
+        f"{mean_psnr:.4f} dB"
+    )
+
+    print(
+        f"Mean SSIM: "
+        f"{mean_ssim:.4f}"
+    )
+
+
+# ============================================================
+# Entry point
+# ============================================================
+
+if __name__ == "__main__":
+    main()
+
+========== evaluation\generate_visual_comparison.py ==========
+from pathlib import Path
+import sys
+
+import numpy as np
+import torch
+import matplotlib.pyplot as plt
+
+
+# ============================================================
+# Project root
+# ============================================================
+
+ROOT = Path(__file__).resolve().parents[1]
+
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+
+# ============================================================
+# Project imports
+# ============================================================
+
+from src.data.kla_dataset import KLADataset
+
+from models.baseline_sr import BaselineSR
+from models.residual_sr import ResidualSR
+
+from src.models.wavelet_sr import WaveletSR
+
+
+# ============================================================
+# Paths
+# ============================================================
+
+DATA_DIR = (
+    ROOT
+    / "data"
+    / "raw"
+    / "train"
+    / "train"
+)
+
+CHECKPOINTS = {
+
+    "Day 2 Baseline":
+        ROOT / "checkpoints" / "baseline_day2_best.pth",
+
+    "Day 3 Baseline":
+        ROOT / "checkpoints" / "baseline_day3_best.pth",
+
+    "Day 4 Residual":
+        ROOT / "checkpoints" / "residual_day4_best.pth",
+
+    "WaveletSR":
+        ROOT / "checkpoints" / "wavelet_sr_best.pth",
+}
+
+
+OUTPUT_DIR = (
+    ROOT
+    / "results"
+    / "visual_comparison"
+)
+
+
+# ============================================================
+# Configuration
+# ============================================================
+
+SEED = 42
+
+VAL_RATIO = 0.20
+
+NUM_SAMPLES = 5
+
+
+# ============================================================
+# Model creation
+# ============================================================
+
+def create_model(name):
+
+    if name in [
+        "Day 2 Baseline",
+        "Day 3 Baseline",
+    ]:
+        return BaselineSR()
+
+    if name == "Day 4 Residual":
+        return ResidualSR()
+
+    if name == "WaveletSR":
+        return WaveletSR()
+
+    raise ValueError(
+        f"Unknown model: {name}"
+    )
+
+
+# ============================================================
+# Main
+# ============================================================
+
+def main():
+
+    print()
+    print("=" * 70)
+    print("SIV-AI VISUAL COMPARISON")
+    print("=" * 70)
+
+
+    # --------------------------------------------------------
+    # Device
+    # --------------------------------------------------------
+
+    device = torch.device(
+        "cuda"
+        if torch.cuda.is_available()
+        else "cpu"
+    )
+
+    print("Device:", device)
+
+    if device.type == "cuda":
+
+        print(
+            "GPU:",
+            torch.cuda.get_device_name(0)
+        )
+
+
+    # --------------------------------------------------------
+    # Output directory
+    # --------------------------------------------------------
+
+    OUTPUT_DIR.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+
+    # --------------------------------------------------------
+    # Dataset
+    # --------------------------------------------------------
+
+    dataset = KLADataset(DATA_DIR)
+
+    print(
+        "Total samples:",
+        len(dataset)
+    )
+
+
+    # --------------------------------------------------------
+    # Reproduce validation split
+    # --------------------------------------------------------
+
+    generator = torch.Generator().manual_seed(
+        SEED
+    )
+
+    indices = torch.randperm(
+        len(dataset),
+        generator=generator
+    ).tolist()
+
+    val_size = int(
+        len(dataset) * VAL_RATIO
+    )
+
+    val_indices = indices[-val_size:]
+
+
+    # --------------------------------------------------------
+    # Select evenly spaced validation samples
+    # --------------------------------------------------------
+
+    positions = np.linspace(
+        0,
+        len(val_indices) - 1,
+        NUM_SAMPLES,
+        dtype=int
+    )
+
+    selected_indices = [
+        val_indices[position]
+        for position in positions
+    ]
+
+
+    print(
+        "Selected validation indices:",
+        selected_indices
+    )
+
+
+    # --------------------------------------------------------
+    # Load models
+    # --------------------------------------------------------
+
+    models = {}
+
+
+    for model_name, checkpoint_path in CHECKPOINTS.items():
+
+        print(
+            f"Loading {model_name}..."
+        )
+
+
+        model = create_model(
+            model_name
+        ).to(device)
+
+
+        if not checkpoint_path.exists():
+
+            raise FileNotFoundError(
+                f"Checkpoint not found: "
+                f"{checkpoint_path}"
+            )
+
+
+        checkpoint = torch.load(
+            checkpoint_path,
+            map_location=device
+        )
+
+
+        model.load_state_dict(
+            checkpoint["model_state_dict"]
+        )
+
+        model.eval()
+
+        models[model_name] = model
+
+
+    print(
+        "All models loaded successfully."
+    )
+
+
+    # ========================================================
+    # Generate visual comparisons
+    # ========================================================
+
+    for sample_number, dataset_index in enumerate(
+        selected_indices,
+        start=1
+    ):
+
+        sample = dataset[dataset_index]
+
+
+        noisy = sample["noisy"].unsqueeze(0).to(
+            device
+        )
+
+        gt = sample["gt"].squeeze(0).cpu().numpy()
+
+        sample_name = sample["name"]
+
+
+        print()
+        print(
+            f"Generating sample "
+            f"{sample_number}/{NUM_SAMPLES}: "
+            f"{sample_name}"
+        )
+
+
+        # ----------------------------------------------------
+        # Predictions
+        # ----------------------------------------------------
+
+        predictions = {}
+
+
+        with torch.no_grad():
+
+            for model_name, model in models.items():
+
+                prediction = model(
+                    noisy
+                )
+
+                prediction = prediction.clamp(
+                    0.0,
+                    1.0
+                )
+
+                prediction = (
+                    prediction[0, 0]
+                    .cpu()
+                    .numpy()
+                )
+
+                predictions[model_name] = prediction
+
+
+        # ----------------------------------------------------
+        # Input
+        # ----------------------------------------------------
+
+        noisy_np = (
+            sample["noisy"]
+            .squeeze(0)
+            .cpu()
+            .numpy()
+        )
+
+
+        # ----------------------------------------------------
+        # Plot
+        # ----------------------------------------------------
+
+        fig, axes = plt.subplots(
+            2,
+            3,
+            figsize=(14, 9)
+        )
+
+
+        # Noisy input
+
+        axes[0, 0].imshow(
+            noisy_np,
+            cmap="gray",
+            vmin=0,
+            vmax=1
+        )
+
+        axes[0, 0].set_title(
+            "Noisy Input\n128Ãƒâ€”128"
+        )
+
+        axes[0, 0].axis("off")
+
+
+        # Ground truth
+
+        axes[0, 1].imshow(
+            gt,
+            cmap="gray",
+            vmin=0,
+            vmax=1
+        )
+
+        axes[0, 1].set_title(
+            "Ground Truth\n256Ãƒâ€”256"
+        )
+
+        axes[0, 1].axis("off")
+
+
+        # Day 2
+
+        axes[0, 2].imshow(
+            predictions["Day 2 Baseline"],
+            cmap="gray",
+            vmin=0,
+            vmax=1
+        )
+
+        axes[0, 2].set_title(
+            "Day 2 Baseline"
+        )
+
+        axes[0, 2].axis("off")
+
+
+        # Day 3
+
+        axes[1, 0].imshow(
+            predictions["Day 3 Baseline"],
+            cmap="gray",
+            vmin=0,
+            vmax=1
+        )
+
+        axes[1, 0].set_title(
+            "Day 3 Baseline"
+        )
+
+        axes[1, 0].axis("off")
+
+
+        # Day 4
+
+        axes[1, 1].imshow(
+            predictions["Day 4 Residual"],
+            cmap="gray",
+            vmin=0,
+            vmax=1
+        )
+
+        axes[1, 1].set_title(
+            "Day 4 Residual"
+        )
+
+        axes[1, 1].axis("off")
+
+
+        # WaveletSR
+
+        axes[1, 2].imshow(
+            predictions["WaveletSR"],
+            cmap="gray",
+            vmin=0,
+            vmax=1
+        )
+
+        axes[1, 2].set_title(
+            "WaveletSR"
+        )
+
+        axes[1, 2].axis("off")
+
+
+        # ----------------------------------------------------
+        # Figure title
+        # ----------------------------------------------------
+
+        fig.suptitle(
+            f"SIV-AI Visual Comparison Ã¢â‚¬â€ Sample {sample_name}",
+            fontsize=16
+        )
+
+
+        plt.tight_layout()
+
+
+        # ----------------------------------------------------
+        # Save
+        # ----------------------------------------------------
+
+        output_path = (
+            OUTPUT_DIR
+            / f"sample_{sample_name}.png"
+        )
+
+
+        plt.savefig(
+            output_path,
+            dpi=200,
+            bbox_inches="tight"
+        )
+
+        plt.close()
+
+
+        print(
+            "Saved:",
+            output_path
+        )
+
+
+    # ========================================================
+    # Complete
+    # ========================================================
+
+    print()
+    print("=" * 70)
+    print("VISUAL COMPARISON COMPLETED")
+    print("=" * 70)
+
+    print(
+        "Output directory:",
+        OUTPUT_DIR
+    )
+
+
+# ============================================================
+# Entry point
+# ============================================================
+
+if __name__ == "__main__":
+    main()
+
+========== experiments\create_final_comparison.py ==========
+from pathlib import Path
+
+from PIL import Image, ImageDraw
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+INPUT_DIR = (
+    ROOT
+    / "outputs"
+    / "day5_final"
+)
+
+OUTPUT_DIR = (
+    ROOT
+    / "outputs"
+    / "final_comparison"
+)
+
+
+def main():
+
+    OUTPUT_DIR.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+    noisy = Image.open(
+        INPUT_DIR / "noisy.png"
+    ).convert("L")
+
+    restored = Image.open(
+        INPUT_DIR / "restored.png"
+    ).convert("L")
+
+    ground_truth = Image.open(
+        INPUT_DIR / "ground_truth.png"
+    ).convert("L")
+
+    # Resize noisy image for visual comparison
+    noisy = noisy.resize(
+        restored.size
+    )
+
+    images = [
+        ("Noisy Input", noisy),
+        ("ResidualSR Restored", restored),
+        ("Ground Truth", ground_truth),
+    ]
+
+    width, height = restored.size
+
+    label_height = 40
+
+    comparison = Image.new(
+        "L",
+        (
+            width * 3,
+            height + label_height
+        ),
+        color=255
+    )
+
+    draw = ImageDraw.Draw(
+        comparison
+    )
+
+    for i, (label, image) in enumerate(images):
+
+        x = i * width
+
+        comparison.paste(
+            image,
+            (x, label_height)
+        )
+
+        draw.text(
+            (x + 10, 10),
+            label,
+            fill=0
+        )
+
+    output_path = (
+        OUTPUT_DIR
+        / "final_comparison.png"
+    )
+
+    comparison.save(
+        output_path
+    )
+
+    print(
+        "Final comparison saved:"
+    )
+
+    print(output_path)
+
+
+if __name__ == "__main__":
+    main()
+
+========== experiments\degradation_demo.py ==========
+import numpy as np
+import cv2
+
+from src.preprocessing.degradation import (
+    add_gaussian_noise,
+    add_gaussian_blur,
+    degrade_image,
+)
+
+
+def main():
+    # Create a synthetic image
+    image = np.zeros((256, 256), dtype=np.float32)
+
+    # Large square
+    image[70:190, 70:190] = 1.0
+
+    # Smaller bright feature
+    image[105:155, 105:155] = 0.5
+
+    # Individual degradation stages
+    noisy = add_gaussian_noise(image, sigma=0.05)
+
+    blurred = add_gaussian_blur(
+        image,
+        kernel_size=5,
+        sigma=1.0,
+    )
+
+    degraded = degrade_image(
+        image,
+        noise_sigma=0.05,
+        blur_kernel_size=5,
+        blur_sigma=1.0,
+    )
+
+    # Save outputs
+    cv2.imwrite(
+        "outputs/degraded/original.png",
+        (image * 255).astype(np.uint8),
+    )
+
+    cv2.imwrite(
+        "outputs/degraded/noisy.png",
+        (noisy * 255).astype(np.uint8),
+    )
+
+    cv2.imwrite(
+        "outputs/degraded/blurred.png",
+        (blurred * 255).astype(np.uint8),
+    )
+
+    cv2.imwrite(
+        "outputs/degraded/degraded.png",
+        (degraded * 255).astype(np.uint8),
+    )
+
+    print("Degradation demo completed.")
+    print("Saved images to outputs/degraded/")
+
+
+if __name__ == "__main__":
+    main()
+
+========== experiments\inspect_kla_dataset.py ==========
+from pathlib import Path
+import numpy as np
+
+TRAIN_DIR = Path("data/raw/train")
+TEST_DIR = Path("data/raw/test_noisy")
+
+
+def inspect_folder(folder):
+    files = list(folder.rglob("*.npy"))
+
+    print(f"\nFolder: {folder}")
+    print(f"Number of NPY files: {len(files)}")
+
+    if not files:
+        print("No .npy files found.")
+        return
+
+    for path in files[:5]:
+        data = np.load(path)
+
+        print("\nFile:", path)
+        print("Shape:", data.shape)
+        print("Dtype:", data.dtype)
+        print("Min:", data.min())
+        print("Max:", data.max())
+        print("Mean:", data.mean())
+
+
+if __name__ == "__main__":
+    inspect_folder(TRAIN_DIR)
+    inspect_folder(TEST_DIR)
+
+========== experiments\inspect_samples.py ==========
+from pathlib import Path
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+
+# Project root
+ROOT = Path(__file__).resolve().parents[1]
+
+GT_DIR = ROOT / "data" / "raw" / "train" / "train" / "GT"
+NOISY_DIR = ROOT / "data" / "raw" / "train" / "train" / "NoisyLR"
+
+OUTPUT_DIR = ROOT / "outputs" / "inspection"
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+
+# Sample to inspect
+sample_id = "000000"
+
+gt_path = GT_DIR / f"{sample_id}.npy"
+noisy_path = NOISY_DIR / f"{sample_id}.npy"
+
+# Load arrays
+gt = np.load(gt_path)
+noisy = np.load(noisy_path)
+
+# Upsample NoisyLR to GT resolution for visual comparison
+noisy_up = np.repeat(np.repeat(noisy, 2, axis=0), 2, axis=1)
+
+print("GT shape       :", gt.shape)
+print("NoisyLR shape  :", noisy.shape)
+print("Upsampled shape:", noisy_up.shape)
+
+# Create visualization
+fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+
+axes[0].imshow(gt, cmap="gray")
+axes[0].set_title("Ground Truth (GT)")
+axes[0].axis("off")
+
+axes[1].imshow(noisy, cmap="gray")
+axes[1].set_title("NoisyLR")
+axes[1].axis("off")
+
+axes[2].imshow(noisy_up, cmap="gray")
+axes[2].set_title("NoisyLR (Upsampled)")
+axes[2].axis("off")
+
+plt.tight_layout()
+
+output_path = OUTPUT_DIR / "sample_000000.png"
+plt.savefig(output_path, dpi=150, bbox_inches="tight")
+plt.close()
+
+print("Saved visualization:", output_path)
+
+========== experiments\__init__.py ==========
+
+========== inference\infer.py ==========
+from pathlib import Path
+import sys
+
+import torch
+from PIL import Image
+import numpy as np
+
+
+# Add project root to Python path
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from src.data.kla_dataset import KLADataset
+from models.baseline_sr import BaselineSR
+
+
+# --------------------------------------------------
+# Paths
+# --------------------------------------------------
+
+DATA_DIR = ROOT / "data" / "raw" / "train" / "train"
+CHECKPOINT = ROOT / "checkpoints" / "baseline_day2_best.pth"
+OUTPUT_DIR = ROOT / "outputs" / "day2_baseline"
+
+
+def tensor_to_image(tensor):
+    """
+    Convert a [1, H, W] tensor into a grayscale PIL image.
+    """
+
+    tensor = tensor.detach().cpu().squeeze(0)
+
+    tensor = tensor.clamp(0, 1)
+
+    image = (tensor.numpy() * 255).astype(np.uint8)
+
+    return Image.fromarray(image, mode="L")
+
+
+def main():
+
+    # --------------------------------------------------
+    # Device
+    # --------------------------------------------------
+
+    device = torch.device(
+        "cuda" if torch.cuda.is_available() else "cpu"
+    )
+
+    print("Device:", device)
+
+    # --------------------------------------------------
+    # Load dataset
+    # --------------------------------------------------
+
+    dataset = KLADataset(DATA_DIR)
+
+    print("Dataset size:", len(dataset))
+
+    # Use the first sample
+    sample = dataset[0]
+
+    noisy = sample["noisy"].unsqueeze(0).to(device)
+    gt = sample["gt"]
+
+    print("Sample name:", sample["name"])
+    print("Input shape:", noisy.shape)
+    print("GT shape:", gt.shape)
+
+    # --------------------------------------------------
+    # Load model
+    # --------------------------------------------------
+
+    model = BaselineSR().to(device)
+
+    checkpoint = torch.load(
+        CHECKPOINT,
+        map_location=device
+    )
+
+    model.load_state_dict(
+        checkpoint["model_state_dict"]
+    )
+
+    model.eval()
+
+    print("Checkpoint loaded successfully")
+
+    # --------------------------------------------------
+    # Inference
+    # --------------------------------------------------
+
+    with torch.no_grad():
+
+        prediction = model(noisy)
+
+    prediction = prediction.squeeze(0)
+
+    print("Prediction shape:", prediction.shape)
+
+    # --------------------------------------------------
+    # Save images
+    # --------------------------------------------------
+
+    OUTPUT_DIR.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+    noisy_image = tensor_to_image(
+        sample["noisy"]
+    )
+
+    gt_image = tensor_to_image(
+        sample["gt"]
+    )
+
+    restored_image = tensor_to_image(
+        prediction
+    )
+
+    noisy_path = OUTPUT_DIR / "noisy.png"
+    gt_path = OUTPUT_DIR / "ground_truth.png"
+    restored_path = OUTPUT_DIR / "restored.png"
+
+    noisy_image.save(noisy_path)
+    gt_image.save(gt_path)
+    restored_image.save(restored_path)
+
+    print()
+    print("Images saved:")
+    print("Noisy       :", noisy_path)
+    print("Restored    :", restored_path)
+    print("Ground Truth:", gt_path)
+
+
+if __name__ == "__main__":
+    main()
+
+========== inference\infer_day5.py ==========
+from pathlib import Path
+import sys
+
+import torch
+from PIL import Image
+import numpy as np
+
+
+# --------------------------------------------------
+# Add project root to Python path
+# --------------------------------------------------
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+
+from src.data.kla_dataset import KLADataset
+from models.residual_sr import ResidualSR
+
+
+# --------------------------------------------------
+# Paths
+# --------------------------------------------------
+
+DATA_DIR = ROOT / "data" / "raw" / "train" / "train"
+
+CHECKPOINT = (
+    ROOT
+    / "checkpoints"
+    / "residual_day4_best.pth"
+)
+
+OUTPUT_DIR = (
+    ROOT
+    / "outputs"
+    / "day5_final"
+)
+
+
+# --------------------------------------------------
+# Tensor Ã¢â€ â€™ PIL image
+# --------------------------------------------------
+
+def tensor_to_image(tensor):
+    """
+    Convert [1, H, W] tensor to grayscale PIL image.
+    """
+
+    tensor = tensor.detach().cpu().squeeze(0)
+
+    tensor = tensor.clamp(0, 1)
+
+    image = (
+        tensor.numpy() * 255
+    ).astype(np.uint8)
+
+    return Image.fromarray(
+        image,
+        mode="L"
+    )
+
+
+# --------------------------------------------------
+# Main
+# --------------------------------------------------
+
+def main():
+
+    # --------------------------------------------------
+    # Device
+    # --------------------------------------------------
+
+    device = torch.device(
+        "cuda"
+        if torch.cuda.is_available()
+        else "cpu"
+    )
+
+    print("Device:", device)
+
+    if device.type == "cuda":
+        print(
+            "GPU:",
+            torch.cuda.get_device_name(0)
+        )
+
+    # --------------------------------------------------
+    # Dataset
+    # --------------------------------------------------
+
+    dataset = KLADataset(DATA_DIR)
+
+    print(
+        "Dataset size:",
+        len(dataset)
+    )
+
+    # Use first sample for final demonstration
+    sample = dataset[0]
+
+    noisy = (
+        sample["noisy"]
+        .unsqueeze(0)
+        .to(device)
+    )
+
+    gt = sample["gt"]
+
+    print(
+        "Sample name:",
+        sample["name"]
+    )
+
+    print(
+        "Input shape:",
+        noisy.shape
+    )
+
+    print(
+        "Ground truth shape:",
+        gt.shape
+    )
+
+    # --------------------------------------------------
+    # Create ResidualSR model
+    # --------------------------------------------------
+
+    model = ResidualSR().to(device)
+
+    # --------------------------------------------------
+    # Load Day 4 checkpoint
+    # --------------------------------------------------
+
+    checkpoint = torch.load(
+        CHECKPOINT,
+        map_location=device
+    )
+
+    model.load_state_dict(
+        checkpoint["model_state_dict"]
+    )
+
+    model.eval()
+
+    print(
+        "ResidualSR checkpoint loaded successfully"
+    )
+
+    # --------------------------------------------------
+    # Inference
+    # --------------------------------------------------
+
+    with torch.no_grad():
+
+        prediction = model(noisy)
+
+    prediction = prediction.squeeze(0)
+
+    print(
+        "Prediction shape:",
+        prediction.shape
+    )
+
+    # --------------------------------------------------
+    # Create output directory
+    # --------------------------------------------------
+
+    OUTPUT_DIR.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+    # --------------------------------------------------
+    # Convert images
+    # --------------------------------------------------
+
+    noisy_image = tensor_to_image(
+        sample["noisy"]
+    )
+
+    restored_image = tensor_to_image(
+        prediction
+    )
+
+    gt_image = tensor_to_image(
+        gt
+    )
+
+    # --------------------------------------------------
+    # Save images
+    # --------------------------------------------------
+
+    noisy_path = (
+        OUTPUT_DIR / "noisy.png"
+    )
+
+    restored_path = (
+        OUTPUT_DIR / "restored.png"
+    )
+
+    gt_path = (
+        OUTPUT_DIR / "ground_truth.png"
+    )
+
+    noisy_image.save(noisy_path)
+    restored_image.save(restored_path)
+    gt_image.save(gt_path)
+
+    # --------------------------------------------------
+    # Results
+    # --------------------------------------------------
+
+    print()
+    print("Final images saved:")
+    print(
+        "Noisy       :",
+        noisy_path
+    )
+
+    print(
+        "Restored    :",
+        restored_path
+    )
+
+    print(
+        "Ground Truth:",
+        gt_path
+    )
+
+
+# --------------------------------------------------
+# Entry point
+# --------------------------------------------------
+
+if __name__ == "__main__":
+    main()
+
+========== models\baseline_sr.py ==========
+import torch
+import torch.nn as nn
+
+
+class BaselineSR(nn.Module):
+    """
+    Simple baseline CNN for 2x SEM image super-resolution.
+
+    Input:
+        [B, 1, 128, 128]
+
+    Output:
+        [B, 1, 256, 256]
+    """
+
+    def __init__(self):
+        super().__init__()
+
+        self.features = nn.Sequential(
+            nn.Conv2d(1, 64, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+
+            nn.Conv2d(64, 64, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+
+            nn.Conv2d(64, 64, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+        )
+
+        self.upsample = nn.Sequential(
+            nn.Conv2d(64, 4, kernel_size=3, padding=1),
+            nn.PixelShuffle(2),
+            nn.ReLU(inplace=True),
+        )
+
+        self.output = nn.Conv2d(
+            1,
+            1,
+            kernel_size=3,
+            padding=1
+        )
+
+    def forward(self, x):
+        x = self.features(x)
+        x = self.upsample(x)
+        x = self.output(x)
+
+        return x
+
+========== models\residual_sr.py ==========
+import torch
+import torch.nn as nn
+
+
+class ResidualBlock(nn.Module):
+    """
+    Residual block for SEM image super-resolution.
+    """
+
+    def __init__(self, channels=64):
+        super().__init__()
+
+        self.block = nn.Sequential(
+            nn.Conv2d(
+                channels,
+                channels,
+                kernel_size=3,
+                padding=1
+            ),
+            nn.ReLU(inplace=True),
+
+            nn.Conv2d(
+                channels,
+                channels,
+                kernel_size=3,
+                padding=1
+            )
+        )
+
+    def forward(self, x):
+        return x + self.block(x)
+
+
+class ResidualSR(nn.Module):
+    """
+    Improved residual CNN for 2x SEM image super-resolution.
+
+    Input:
+        [B, 1, 128, 128]
+
+    Output:
+        [B, 1, 256, 256]
+    """
+
+    def __init__(
+        self,
+        channels=64,
+        num_blocks=5
+    ):
+        super().__init__()
+
+        # Initial feature extraction
+        self.head = nn.Conv2d(
+            1,
+            channels,
+            kernel_size=3,
+            padding=1
+        )
+
+        # Residual feature extraction
+        self.body = nn.Sequential(
+            *[
+                ResidualBlock(channels)
+                for _ in range(num_blocks)
+            ]
+        )
+
+        # Feature fusion after residual blocks
+        self.body_conv = nn.Conv2d(
+            channels,
+            channels,
+            kernel_size=3,
+            padding=1
+        )
+
+        # 2x upsampling
+        self.upsample = nn.Sequential(
+            nn.Conv2d(
+                channels,
+                channels * 4,
+                kernel_size=3,
+                padding=1
+            ),
+            nn.PixelShuffle(2),
+            nn.ReLU(inplace=True)
+        )
+
+        # Final reconstruction
+        self.output = nn.Conv2d(
+            channels,
+            1,
+            kernel_size=3,
+            padding=1
+        )
+
+    def forward(self, x):
+
+        # Initial features
+        features = self.head(x)
+
+        # Residual features
+        residual = self.body(features)
+
+        # Global residual connection
+        residual = self.body_conv(residual)
+
+        features = features + residual
+
+        # Upsampling
+        features = self.upsample(features)
+
+        # Reconstruction
+        output = self.output(features)
+
+        return output
+
+========== notebooks\01_degradation_demo.py ==========
+
+========== src\__init__.py ==========
+
+========== src\data\kla_dataset.py ==========
+from pathlib import Path
+
+import numpy as np
+import torch
+from torch.utils.data import Dataset
+
+
+class KLADataset(Dataset):
+    def __init__(self, root_dir):
+        self.root_dir = Path(root_dir)
+
+        self.gt_dir = self.root_dir / "GT"
+        self.noisy_dir = self.root_dir / "NoisyLR"
+
+        self.gt_files = sorted(self.gt_dir.glob("*.npy"))
+        self.noisy_files = sorted(self.noisy_dir.glob("*.npy"))
+
+        if len(self.gt_files) != len(self.noisy_files):
+            raise ValueError(
+                f"GT count ({len(self.gt_files)}) does not match "
+                f"NoisyLR count ({len(self.noisy_files)})"
+            )
+
+        for gt_file, noisy_file in zip(self.gt_files, self.noisy_files):
+            if gt_file.stem != noisy_file.stem:
+                raise ValueError(
+                    f"Pair mismatch: {gt_file.name} <-> {noisy_file.name}"
+                )
+
+    def __len__(self):
+        return len(self.gt_files)
+
+    def __getitem__(self, index):
+        gt = np.load(self.gt_files[index]).astype(np.float32)
+        noisy = np.load(self.noisy_files[index]).astype(np.float32)
+
+        gt = torch.from_numpy(gt).unsqueeze(0)
+        noisy = torch.from_numpy(noisy).unsqueeze(0)
+
+        return {
+            "noisy": noisy,
+            "gt": gt,
+            "name": self.gt_files[index].stem,
+        }
+
+========== src\losses\losses.py ==========
+
+
+========== src\models\nafnet_lite.py ==========
+import torch
+import torch.nn as nn
+
+
+class SimpleGate(nn.Module):
+    """
+    Simple gating mechanism used in NAFNet-style blocks.
+
+    Splits the feature channels into two parts
+    and performs element-wise multiplication.
+    """
+
+    def forward(self, x):
+        x1, x2 = x.chunk(2, dim=1)
+        return x1 * x2
+
+
+class NAFBlockLite(nn.Module):
+    """
+    Lightweight NAFNet-inspired restoration block.
+
+    Designed for efficient image restoration while
+    keeping the parameter count manageable.
+    """
+
+    def __init__(
+        self,
+        channels=32,
+        expansion=2,
+        dropout=0.0,
+    ):
+        super().__init__()
+
+        hidden = channels * expansion
+
+        self.norm1 = nn.GroupNorm(
+            1,
+            channels
+        )
+
+        self.conv1 = nn.Conv2d(
+            channels,
+            hidden * 2,
+            kernel_size=1,
+            padding=0,
+        )
+
+        self.dwconv = nn.Conv2d(
+            hidden * 2,
+            hidden * 2,
+            kernel_size=3,
+            padding=1,
+            groups=hidden * 2,
+        )
+
+        self.sg = SimpleGate()
+
+        self.sca = nn.Sequential(
+            nn.AdaptiveAvgPool2d(1),
+            nn.Conv2d(
+                hidden,
+                hidden,
+                kernel_size=1,
+            ),
+        )
+
+        self.conv2 = nn.Conv2d(
+            hidden,
+            channels,
+            kernel_size=1,
+            padding=0,
+        )
+
+        self.dropout1 = nn.Dropout2d(
+            dropout
+        )
+
+        self.norm2 = nn.GroupNorm(
+            1,
+            channels
+        )
+
+        self.ffn1 = nn.Conv2d(
+            channels,
+            hidden * 2,
+            kernel_size=1,
+        )
+
+        self.ffn_gate = SimpleGate()
+
+        self.ffn2 = nn.Conv2d(
+            hidden,
+            channels,
+            kernel_size=1,
+        )
+
+        self.dropout2 = nn.Dropout2d(
+            dropout
+        )
+
+        self.beta = nn.Parameter(
+            torch.zeros(
+                1,
+                channels,
+                1,
+                1
+            )
+        )
+
+        self.gamma = nn.Parameter(
+            torch.zeros(
+                1,
+                channels,
+                1,
+                1
+            )
+        )
+
+    def forward(self, x):
+
+        residual = x
+
+        y = self.norm1(x)
+
+        y = self.conv1(y)
+
+        y = self.dwconv(y)
+
+        y = self.sg(y)
+
+        y = y * self.sca(y)
+
+        y = self.conv2(y)
+
+        y = self.dropout1(y)
+
+        x = residual + y * self.beta
+
+        residual = x
+
+        y = self.norm2(x)
+
+        y = self.ffn1(y)
+
+        y = self.ffn_gate(y)
+
+        y = self.ffn2(y)
+
+        y = self.dropout2(y)
+
+        x = residual + y * self.gamma
+
+        return x
+
+
+class NAFNetLite(nn.Module):
+    """
+    Lightweight NAFNet-inspired restoration network.
+
+    Input:
+        [B, in_channels, H, W]
+
+    Output:
+        [B, out_channels, H, W]
+
+    Default configuration is designed for processing
+    concatenated high-frequency Haar wavelet bands.
+    """
+
+    def __init__(
+        self,
+        in_channels=3,
+        out_channels=3,
+        width=32,
+        num_blocks=5,
+    ):
+        super().__init__()
+
+        self.intro = nn.Conv2d(
+            in_channels,
+            width,
+            kernel_size=3,
+            padding=1,
+        )
+
+        self.blocks = nn.Sequential(
+            *[
+                NAFBlockLite(
+                    channels=width
+                )
+                for _ in range(num_blocks)
+            ]
+        )
+
+        self.ending = nn.Conv2d(
+            width,
+            out_channels,
+            kernel_size=3,
+            padding=1,
+        )
+
+    def forward(self, x):
+
+        residual = x
+
+        x = self.intro(x)
+
+        x = self.blocks(x)
+
+        x = self.ending(x)
+
+        # Global residual connection.
+        # This stabilizes restoration of high-frequency
+        # wavelet coefficients.
+        if x.shape == residual.shape:
+            x = x + residual
+
+        return x
+
+
+if __name__ == "__main__":
+
+    device = torch.device(
+        "cuda"
+        if torch.cuda.is_available()
+        else "cpu"
+    )
+
+    model = NAFNetLite().to(device)
+
+    x = torch.randn(
+        2,
+        3,
+        64,
+        64,
+        device=device,
+    )
+
+    with torch.no_grad():
+        y = model(x)
+
+    parameters = sum(
+        p.numel()
+        for p in model.parameters()
+    )
+
+    print("Device:", device)
+    print("Input shape:", x.shape)
+    print("Output shape:", y.shape)
+    print("Parameters:", parameters)
+
+========== src\models\restormer_lite.py ==========
+"""
+SIV-AI
+Lightweight Restormer-inspired restoration network.
+
+Purpose:
+    Restore the LL (low-frequency) wavelet component
+    of degraded SEM images.
+
+Architecture:
+    Input Projection
+        Ã¢â€ â€œ
+    Restormer Blocks
+        Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ LayerNorm
+        Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ MDTA Channel Attention
+        Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ Residual Connection
+        Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ LayerNorm
+        Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ GDFN
+        Ã¢â€â€Ã¢â€â‚¬Ã¢â€â‚¬ Residual Connection
+        Ã¢â€ â€œ
+    Output Projection
+        Ã¢â€ â€œ
+    Restored LL component
+
+This is a lightweight Restormer-inspired implementation,
+not the full original Restormer architecture.
+"""
+
+from pathlib import Path
+import sys
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+
+# --------------------------------------------------
+# Project root
+# --------------------------------------------------
+
+ROOT = Path(__file__).resolve().parents[2]
+
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+
+# ==================================================
+# Layer Normalization
+# ==================================================
+
+class BiasFreeLayerNorm(nn.Module):
+    """
+    Bias-free LayerNorm used by Restormer-style blocks.
+
+    Input:
+        [B, C, H, W]
+
+    Normalization:
+        performed across channel dimension.
+    """
+
+    def __init__(self, channels):
+        super().__init__()
+
+        self.weight = nn.Parameter(
+            torch.ones(channels)
+        )
+
+    def forward(self, x):
+
+        # [B, C, H, W]
+        b, c, h, w = x.shape
+
+        # Move channels to last dimension
+        x = x.permute(
+            0, 2, 3, 1
+        )
+
+        # Normalize channels
+        variance = x.var(
+            dim=-1,
+            keepdim=True,
+            unbiased=False,
+        )
+
+        x = x / torch.sqrt(
+            variance + 1e-5
+        )
+
+        x = x * self.weight
+
+        # Restore [B, C, H, W]
+        x = x.permute(
+            0, 3, 1, 2
+        )
+
+        return x
+
+
+class WithBiasLayerNorm(nn.Module):
+    """
+    LayerNorm with learnable bias.
+    """
+
+    def __init__(self, channels):
+        super().__init__()
+
+        self.weight = nn.Parameter(
+            torch.ones(channels)
+        )
+
+        self.bias = nn.Parameter(
+            torch.zeros(channels)
+        )
+
+    def forward(self, x):
+
+        b, c, h, w = x.shape
+
+        x = x.permute(
+            0, 2, 3, 1
+        )
+
+        mean = x.mean(
+            dim=-1,
+            keepdim=True
+        )
+
+        variance = x.var(
+            dim=-1,
+            keepdim=True,
+            unbiased=False,
+        )
+
+        x = (
+            (x - mean)
+            / torch.sqrt(
+                variance + 1e-5
+            )
+        )
+
+        x = (
+            x * self.weight
+            + self.bias
+        )
+
+        x = x.permute(
+            0, 3, 1, 2
+        )
+
+        return x
+
+
+class LayerNorm2d(nn.Module):
+    """
+    Wrapper used by the Restormer blocks.
+
+    Default:
+        Bias-free LayerNorm.
+    """
+
+    def __init__(
+        self,
+        channels,
+        bias=False,
+    ):
+        super().__init__()
+
+        if bias:
+            self.body = WithBiasLayerNorm(
+                channels
+            )
+        else:
+            self.body = BiasFreeLayerNorm(
+                channels
+            )
+
+    def forward(self, x):
+        return self.body(x)
+
+
+# ==================================================
+# MDTA
+# ==================================================
+
+class MDTA(nn.Module):
+    """
+    Multi-DConv Head Transposed Attention.
+
+    Lightweight Restormer-inspired attention.
+
+    Important:
+        Attention is calculated across feature channels,
+        not directly across all spatial pixels.
+
+    This avoids constructing a huge
+    [H*W, H*W] attention matrix.
+
+    Input:
+        [B, C, H, W]
+
+    Output:
+        [B, C, H, W]
+    """
+
+    def __init__(
+        self,
+        channels,
+        num_heads=4,
+    ):
+        super().__init__()
+
+        if channels % num_heads != 0:
+            raise ValueError(
+                "channels must be divisible by num_heads"
+            )
+
+        self.channels = channels
+        self.num_heads = num_heads
+        self.head_dim = channels // num_heads
+
+        # Generate Q, K, V
+        self.qkv = nn.Conv2d(
+            channels,
+            channels * 3,
+            kernel_size=1,
+            bias=False,
+        )
+
+        # Depth-wise convolution
+        self.qkv_dw = nn.Conv2d(
+            channels * 3,
+            channels * 3,
+            kernel_size=3,
+            padding=1,
+            groups=channels * 3,
+            bias=False,
+        )
+
+        # Learnable temperature
+        self.temperature = nn.Parameter(
+            torch.ones(
+                num_heads,
+                1,
+                1,
+            )
+        )
+
+        # Output projection
+        self.project_out = nn.Conv2d(
+            channels,
+            channels,
+            kernel_size=1,
+            bias=False,
+        )
+
+    def forward(self, x):
+
+        # --------------------------------------------------
+        # Input dimensions
+        # --------------------------------------------------
+
+        b, c, h, w = x.shape
+
+        # --------------------------------------------------
+        # QKV projection
+        # --------------------------------------------------
+
+        qkv = self.qkv(x)
+
+        qkv = self.qkv_dw(
+            qkv
+        )
+
+        q, k, v = qkv.chunk(
+            3,
+            dim=1
+        )
+
+        # --------------------------------------------------
+        # Split into attention heads
+        # --------------------------------------------------
+
+        q = q.reshape(
+            b,
+            self.num_heads,
+            self.head_dim,
+            h * w,
+        )
+
+        k = k.reshape(
+            b,
+            self.num_heads,
+            self.head_dim,
+            h * w,
+        )
+
+        v = v.reshape(
+            b,
+            self.num_heads,
+            self.head_dim,
+            h * w,
+        )
+
+        # --------------------------------------------------
+        # Normalize Q and K
+        # --------------------------------------------------
+
+        q = F.normalize(
+            q,
+            dim=-1,
+        )
+
+        k = F.normalize(
+            k,
+            dim=-1,
+        )
+
+        # --------------------------------------------------
+        # Channel attention
+        # --------------------------------------------------
+        #
+        # q:
+        # [B, heads, head_dim, HW]
+        #
+        # k^T:
+        # [B, heads, HW, head_dim]
+        #
+        # result:
+        # [B, heads, head_dim, head_dim]
+        #
+        # Therefore attention complexity depends on
+        # feature channels rather than HW Ãƒâ€” HW.
+        # --------------------------------------------------
+
+        attention = torch.matmul(
+            q,
+            k.transpose(
+                -2,
+                -1,
+            ),
+        )
+
+        attention = (
+            attention
+            * self.temperature
+        )
+
+        attention = torch.softmax(
+            attention,
+            dim=-1,
+        )
+
+        # --------------------------------------------------
+        # Apply attention to V
+        # --------------------------------------------------
+        #
+        # attention:
+        # [B, heads, head_dim, head_dim]
+        #
+        # v:
+        # [B, heads, head_dim, HW]
+        #
+        # output:
+        # [B, heads, head_dim, HW]
+        # --------------------------------------------------
+
+        output = torch.matmul(
+            attention,
+            v,
+        )
+
+        # --------------------------------------------------
+        # Merge heads
+        # --------------------------------------------------
+
+        output = output.reshape(
+            b,
+            c,
+            h,
+            w,
+        )
+
+        # --------------------------------------------------
+        # Output projection
+        # --------------------------------------------------
+
+        output = self.project_out(
+            output
+        )
+
+        return output
+
+
+# ==================================================
+# GDFN
+# ==================================================
+
+class GDFN(nn.Module):
+    """
+    Gated-Dconv Feed-Forward Network.
+
+    Lightweight Restormer-inspired feed-forward block.
+
+    Input:
+        [B, C, H, W]
+
+    Output:
+        [B, C, H, W]
+    """
+
+    def __init__(
+        self,
+        channels,
+        expansion=2.0,
+    ):
+        super().__init__()
+
+        hidden = int(
+            channels * expansion
+        )
+
+        # Expand features
+        self.project_in = nn.Conv2d(
+            channels,
+            hidden * 2,
+            kernel_size=1,
+            bias=False,
+        )
+
+        # Depth-wise convolution
+        self.dwconv = nn.Conv2d(
+            hidden * 2,
+            hidden * 2,
+            kernel_size=3,
+            padding=1,
+            groups=hidden * 2,
+            bias=False,
+        )
+
+        # Project back
+        self.project_out = nn.Conv2d(
+            hidden,
+            channels,
+            kernel_size=1,
+            bias=False,
+        )
+
+    def forward(self, x):
+
+        x = self.project_in(
+            x
+        )
+
+        x = self.dwconv(
+            x
+        )
+
+        x1, x2 = x.chunk(
+            2,
+            dim=1
+        )
+
+        # Gated activation
+        x = F.gelu(
+            x1
+        ) * x2
+
+        x = self.project_out(
+            x
+        )
+
+        return x
+
+
+# ==================================================
+# Restormer Block
+# ==================================================
+
+class RestormerBlockLite(nn.Module):
+    """
+    Lightweight Restormer-inspired block.
+
+    Structure:
+
+        LayerNorm
+             Ã¢â€ â€œ
+        MDTA Attention
+             Ã¢â€ â€œ
+        Residual
+             Ã¢â€ â€œ
+        LayerNorm
+             Ã¢â€ â€œ
+        GDFN
+             Ã¢â€ â€œ
+        Residual
+    """
+
+    def __init__(
+        self,
+        channels=32,
+        num_heads=4,
+    ):
+        super().__init__()
+
+        self.norm1 = LayerNorm2d(
+            channels
+        )
+
+        self.attention = MDTA(
+            channels,
+            num_heads,
+        )
+
+        self.norm2 = LayerNorm2d(
+            channels
+        )
+
+        self.ffn = GDFN(
+            channels
+        )
+
+    def forward(self, x):
+
+        # Attention branch
+        x = (
+            x
+            + self.attention(
+                self.norm1(x)
+            )
+        )
+
+        # Feed-forward branch
+        x = (
+            x
+            + self.ffn(
+                self.norm2(x)
+            )
+        )
+
+        return x
+
+
+# ==================================================
+# Restormer Lite
+# ==================================================
+
+class RestormerLite(nn.Module):
+    """
+    Lightweight Restormer-inspired restoration network.
+
+    Designed for the LL wavelet component of SEM images.
+
+    Input:
+        [B, 1, H, W]
+
+    Output:
+        [B, 1, H, W]
+
+    Example:
+        Input:
+            [2, 1, 64, 64]
+
+        Output:
+            [2, 1, 64, 64]
+    """
+
+    def __init__(
+        self,
+        in_channels=1,
+        out_channels=1,
+        width=32,
+        num_blocks=4,
+        num_heads=4,
+    ):
+        super().__init__()
+
+        # --------------------------------------------------
+        # Input projection
+        # --------------------------------------------------
+
+        self.input_projection = nn.Conv2d(
+            in_channels,
+            width,
+            kernel_size=3,
+            padding=1,
+        )
+
+        # --------------------------------------------------
+        # Transformer blocks
+        # --------------------------------------------------
+
+        self.blocks = nn.Sequential(
+            *[
+                RestormerBlockLite(
+                    channels=width,
+                    num_heads=num_heads,
+                )
+                for _ in range(num_blocks)
+            ]
+        )
+
+        # --------------------------------------------------
+        # Output projection
+        # --------------------------------------------------
+
+        self.output_projection = nn.Conv2d(
+            width,
+            out_channels,
+            kernel_size=3,
+            padding=1,
+        )
+
+    def forward(self, x):
+
+        # Keep original input for residual connection
+        residual = x
+
+        # Input projection
+        x = self.input_projection(
+            x
+        )
+
+        # Restormer blocks
+        x = self.blocks(
+            x
+        )
+
+        # Output projection
+        x = self.output_projection(
+            x
+        )
+
+        # Global residual connection
+        if (
+            x.shape
+            == residual.shape
+        ):
+            x = x + residual
+
+        return x
+
+
+# ==================================================
+# Self Test
+# ==================================================
+
+if __name__ == "__main__":
+
+    device = torch.device(
+        "cuda"
+        if torch.cuda.is_available()
+        else "cpu"
+    )
+
+    print(
+        "Device:",
+        device
+    )
+
+    if device.type == "cuda":
+        print(
+            "GPU:",
+            torch.cuda.get_device_name(0)
+        )
+
+    # --------------------------------------------------
+    # Test input
+    # --------------------------------------------------
+
+    x = torch.randn(
+        2,
+        1,
+        64,
+        64,
+        device=device,
+    )
+
+    # --------------------------------------------------
+    # Create model
+    # --------------------------------------------------
+
+    model = RestormerLite(
+        in_channels=1,
+        out_channels=1,
+        width=32,
+        num_blocks=4,
+        num_heads=4,
+    ).to(device)
+
+    # --------------------------------------------------
+    # Parameter count
+    # --------------------------------------------------
+
+    parameters = sum(
+        p.numel()
+        for p in model.parameters()
+    )
+
+    print(
+        "Input shape:",
+        x.shape
+    )
+
+    # --------------------------------------------------
+    # Forward pass
+    # --------------------------------------------------
+
+    model.eval()
+
+    with torch.no_grad():
+
+        y = model(x)
+
+    print(
+        "Output shape:",
+        y.shape
+    )
+
+    print(
+        "Parameters:",
+        parameters
+    )
+
+    # --------------------------------------------------
+    # Shape verification
+    # --------------------------------------------------
+
+    assert y.shape == x.shape
+
+    print(
+        "RestormerLite test PASSED"
+    )
+
+========== src\models\siv_ai.py ==========
+
+
+========== src\models\siv_wavelet_sr.py ==========
+
+========== src\models\wavelet_sr.py ==========
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+from src.wavelet.dwt import dwt2d, idwt2d
+from src.models.restormer_lite import RestormerLite
+from src.models.nafnet_lite import NAFNetLite
+
+
+class WaveletSR(nn.Module):
+    """
+    SIV-AI Wavelet Super-Resolution Network.
+
+    Pipeline:
+
+        Low-resolution SEM image
+                |
+                v
+            2D DWT
+                |
+        +-------+-------+
+        |               |
+        v               v
+       LL        LH / HL / HH
+        |               |
+        v               v
+    Restormer        NAFNet
+        |               |
+        +-------+-------+
+                |
+                v
+        Restored wavelet
+         coefficients
+                |
+                v
+              IDWT
+                |
+                v
+          2x upsampling
+                |
+                v
+        Restored SEM image
+
+    Input:
+        [B, 1, 128, 128]
+
+    Output:
+        [B, 1, 256, 256]
+    """
+
+    def __init__(
+        self,
+        in_channels=1,
+        out_channels=1,
+        restormer_width=32,
+        restormer_blocks=4,
+        restormer_heads=4,
+        nafnet_width=32,
+        nafnet_blocks=5,
+    ):
+        super().__init__()
+
+        # --------------------------------------------------
+        # Restormer branch
+        # Processes the low-frequency LL component.
+        # --------------------------------------------------
+
+        self.restormer = RestormerLite(
+            in_channels=in_channels,
+            out_channels=in_channels,
+            width=restormer_width,
+            num_blocks=restormer_blocks,
+            num_heads=restormer_heads,
+        )
+
+        # --------------------------------------------------
+        # NAFNet branch
+        # Processes the three high-frequency components:
+        #
+        # LH
+        # HL
+        # HH
+        #
+        # Therefore input/output channels = 3.
+        # --------------------------------------------------
+
+        self.nafnet = NAFNetLite(
+            in_channels=3,
+            out_channels=3,
+            width=nafnet_width,
+            num_blocks=nafnet_blocks,
+        )
+
+        # --------------------------------------------------
+        # Final refinement
+        #
+        # IDWT produces a reconstructed image at the
+        # original low-resolution input size.
+        #
+        # We then perform 2x interpolation followed by
+        # convolutional refinement.
+        # --------------------------------------------------
+
+        self.refinement = nn.Sequential(
+            nn.Conv2d(
+                in_channels,
+                32,
+                kernel_size=3,
+                padding=1,
+            ),
+            nn.ReLU(inplace=True),
+
+            nn.Conv2d(
+                32,
+                32,
+                kernel_size=3,
+                padding=1,
+            ),
+            nn.ReLU(inplace=True),
+
+            nn.Conv2d(
+                32,
+                out_channels,
+                kernel_size=3,
+                padding=1,
+            ),
+        )
+
+    def forward(self, x):
+        """
+        Forward pass.
+
+        Input:
+            x = [B, 1, H, W]
+
+        Output:
+            [B, 1, 2H, 2W]
+        """
+
+        # --------------------------------------------------
+        # Save original low-resolution input
+        # --------------------------------------------------
+
+        input_image = x
+
+        # --------------------------------------------------
+        # DWT decomposition
+        #
+        # Each wavelet component becomes H/2 x W/2.
+        # --------------------------------------------------
+
+        ll, lh, hl, hh = dwt2d(x)
+
+        # --------------------------------------------------
+        # Low-frequency restoration
+        # --------------------------------------------------
+
+        ll_restored = self.restormer(ll)
+
+        # --------------------------------------------------
+        # High-frequency restoration
+        #
+        # Combine LH, HL and HH along channel dimension.
+        #
+        # [B,1,H/2,W/2] x 3
+        #        Ã¢â€ â€œ
+        # [B,3,H/2,W/2]
+        # --------------------------------------------------
+
+        high_frequency = torch.cat(
+            [lh, hl, hh],
+            dim=1,
+        )
+
+        high_restored = self.nafnet(
+            high_frequency
+        )
+
+        # --------------------------------------------------
+        # Split restored high-frequency coefficients
+        # --------------------------------------------------
+
+        lh_restored = high_restored[:, 0:1, :, :]
+        hl_restored = high_restored[:, 1:2, :, :]
+        hh_restored = high_restored[:, 2:3, :, :]
+
+        # --------------------------------------------------
+        # Inverse DWT
+        #
+        # This reconstructs the original input resolution.
+        # --------------------------------------------------
+
+        reconstructed = idwt2d(
+            ll_restored,
+            lh_restored,
+            hl_restored,
+            hh_restored,
+        )
+
+        # --------------------------------------------------
+        # 2x super-resolution
+        #
+        # 128x128 -> 256x256
+        # --------------------------------------------------
+
+        upsampled = F.interpolate(
+            reconstructed,
+            scale_factor=2,
+            mode="bilinear",
+            align_corners=False,
+        )
+
+        # --------------------------------------------------
+        # Refinement
+        # --------------------------------------------------
+
+        restored = self.refinement(
+            upsampled
+        )
+
+        # --------------------------------------------------
+        # Global residual connection
+        #
+        # Upsample the original degraded image and add it
+        # to the refined restoration.
+        # --------------------------------------------------
+
+        base = F.interpolate(
+            input_image,
+            scale_factor=2,
+            mode="bilinear",
+            align_corners=False,
+        )
+
+        restored = restored + base
+
+        return restored
+
+
+# ==========================================================
+# Standalone test
+# ==========================================================
+
+if __name__ == "__main__":
+
+    device = torch.device(
+        "cuda"
+        if torch.cuda.is_available()
+        else "cpu"
+    )
+
+    if device.type == "cuda":
+        print(
+            "GPU:",
+            torch.cuda.get_device_name(0)
+        )
+
+    model = WaveletSR().to(device)
+
+    x = torch.randn(
+        2,
+        1,
+        128,
+        128,
+        device=device,
+    )
+
+    with torch.no_grad():
+        y = model(x)
+
+    parameters = sum(
+        p.numel()
+        for p in model.parameters()
+    )
+
+    print("Device:", device)
+    print("Input shape:", x.shape)
+    print("Output shape:", y.shape)
+    print("Parameters:", parameters)
+
+    assert y.shape == (
+        2,
+        1,
+        256,
+        256,
+    )
+
+    print("WaveletSR 2x output test PASSED")
+
+========== src\preprocessing\degradation.py ==========
+import numpy as np
+import cv2
+
+def add_gaussian_noise(image: np.ndarray, sigma: float = 0.05) -> np.ndarray:
+    """
+    Add Gaussian noise to an image.
+
+    Parameters
+    ----------
+    image : np.ndarray
+        Input image with pixel values in [0, 1].
+
+    sigma : float
+        Standard deviation of the Gaussian noise.
+
+    Returns
+    -------
+    np.ndarray
+        Noisy image with values clipped to [0, 1].
+    """
+
+    noise = np.random.normal(
+        loc=0.0,
+        scale=sigma,
+        size=image.shape
+    )
+
+    noisy_image = image + noise
+
+    return np.clip(noisy_image, 0.0, 1.0)
+def add_gaussian_blur(
+    image: np.ndarray,
+    kernel_size: int = 5,
+    sigma: float = 1.0
+) -> np.ndarray:
+    """
+    Apply Gaussian blur to an image.
+
+    Parameters
+    ----------
+    image : np.ndarray
+        Input image with pixel values in [0, 1].
+
+    kernel_size : int
+        Size of the Gaussian kernel. Must be a positive odd number.
+
+    sigma : float
+        Standard deviation of the Gaussian kernel.
+
+    Returns
+    -------
+    np.ndarray
+        Blurred image with values clipped to [0, 1].
+    """
+
+    if kernel_size <= 0 or kernel_size % 2 == 0:
+        raise ValueError("kernel_size must be a positive odd number.")
+
+    blurred_image = cv2.GaussianBlur(
+        image,
+        (kernel_size, kernel_size),
+        sigmaX=sigma
+    )
+
+    return np.clip(blurred_image, 0.0, 1.0)
+def degrade_image(
+    image: np.ndarray,
+    noise_sigma: float = 0.05,
+    blur_kernel_size: int = 5,
+    blur_sigma: float = 1.0
+) -> np.ndarray:
+    """
+    Apply a combined degradation pipeline.
+
+    The image is first blurred and then Gaussian noise is added.
+
+    Parameters
+    ----------
+    image : np.ndarray
+        Clean image with pixel values in [0, 1].
+
+    noise_sigma : float
+        Standard deviation of Gaussian noise.
+
+    blur_kernel_size : int
+        Size of the Gaussian blur kernel.
+
+    blur_sigma : float
+        Standard deviation of the Gaussian blur.
+
+    Returns
+    -------
+    np.ndarray
+        Degraded image with values clipped to [0, 1].
+    """
+
+    degraded = add_gaussian_blur(
+        image,
+        kernel_size=blur_kernel_size,
+        sigma=blur_sigma
+    )
+
+    degraded = add_gaussian_noise(
+        degraded,
+        sigma=noise_sigma
+    )
+
+    return np.clip(degraded, 0.0, 1.0)
+
+========== src\preprocessing\__init__.py ==========
+
+========== src\wavelet\dwt.py ==========
+import torch
+
+
+class HaarDWT:
+    """
+    Differentiable 2D Haar Wavelet Transform.
+
+    Input:
+        x -> [B, C, H, W]
+
+    Output:
+        LL -> [B, C, H/2, W/2]
+        LH -> [B, C, H/2, W/2]
+        HL -> [B, C, H/2, W/2]
+        HH -> [B, C, H/2, W/2]
+
+    The implementation uses only PyTorch operations,
+    so it works on CPU and CUDA and remains differentiable.
+    """
+
+    @staticmethod
+    def forward(x):
+
+        if x.ndim != 4:
+            raise ValueError(
+                f"Expected [B,C,H,W], got {tuple(x.shape)}"
+            )
+
+        b, c, h, w = x.shape
+
+        if h % 2 != 0 or w % 2 != 0:
+            raise ValueError(
+                "Haar DWT requires even height and width."
+            )
+
+        x00 = x[:, :, 0::2, 0::2]
+        x01 = x[:, :, 0::2, 1::2]
+        x10 = x[:, :, 1::2, 0::2]
+        x11 = x[:, :, 1::2, 1::2]
+
+        scale = 0.5
+
+        ll = (
+            x00 + x01 + x10 + x11
+        ) * scale
+
+        lh = (
+            x00 - x01 + x10 - x11
+        ) * scale
+
+        hl = (
+            x00 + x01 - x10 - x11
+        ) * scale
+
+        hh = (
+            x00 - x01 - x10 + x11
+        ) * scale
+
+        return ll, lh, hl, hh
+
+
+class HaarIDWT:
+    """
+    Inverse 2D Haar Wavelet Transform.
+
+    Input:
+        LL, LH, HL, HH
+
+    Output:
+        reconstructed image [B,C,H,W]
+    """
+
+    @staticmethod
+    def forward(ll, lh, hl, hh):
+
+        if not (
+            ll.shape
+            == lh.shape
+            == hl.shape
+            == hh.shape
+        ):
+            raise ValueError(
+                "All wavelet coefficient tensors "
+                "must have identical shapes."
+            )
+
+        x00 = (
+            ll + lh + hl + hh
+        ) * 0.5
+
+        x01 = (
+            ll - lh + hl - hh
+        ) * 0.5
+
+        x10 = (
+            ll + lh - hl - hh
+        ) * 0.5
+
+        x11 = (
+            ll - lh - hl + hh
+        ) * 0.5
+
+        b, c, h, w = ll.shape
+
+        output = torch.zeros(
+            b,
+            c,
+            h * 2,
+            w * 2,
+            device=ll.device,
+            dtype=ll.dtype,
+        )
+
+        output[:, :, 0::2, 0::2] = x00
+        output[:, :, 0::2, 1::2] = x01
+        output[:, :, 1::2, 0::2] = x10
+        output[:, :, 1::2, 1::2] = x11
+
+        return output
+
+
+def dwt2d(x):
+    return HaarDWT.forward(x)
+
+
+def idwt2d(ll, lh, hl, hh):
+    return HaarIDWT.forward(
+        ll,
+        lh,
+        hl,
+        hh,
+    )
+
+========== tests\test_baseline_model.py ==========
+from pathlib import Path
+import sys
+
+import torch
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from models.baseline_sr import BaselineSR
+
+
+def test_baseline_model_forward():
+    model = BaselineSR()
+
+    x = torch.randn(4, 1, 128, 128)
+
+    y = model(x)
+
+    assert y.shape == (4, 1, 256, 256)
+
+========== tests\test_kla_dataset.py ==========
+from pathlib import Path
+import sys
+
+import torch
+from torch.utils.data import DataLoader
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from src.data.kla_dataset import KLADataset
+
+
+DATA_DIR = PROJECT_ROOT / "data" / "raw" / "train" / "train"
+
+
+def test_kla_dataset():
+    dataset = KLADataset(DATA_DIR)
+
+    assert len(dataset) == 3200
+
+    sample = dataset[0]
+
+    assert sample["noisy"].shape == torch.Size([1, 128, 128])
+    assert sample["gt"].shape == torch.Size([1, 256, 256])
+
+    assert sample["noisy"].dtype == torch.float32
+    assert sample["gt"].dtype == torch.float32
+
+
+def test_kla_dataloader():
+    dataset = KLADataset(DATA_DIR)
+
+    loader = DataLoader(
+        dataset,
+        batch_size=4,
+        shuffle=True,
+        num_workers=0,
+    )
+
+    batch = next(iter(loader))
+
+    assert batch["noisy"].shape == torch.Size([4, 1, 128, 128])
+    assert batch["gt"].shape == torch.Size([4, 1, 256, 256])
+
+========== tests\test_model_with_dataset.py ==========
+from pathlib import Path
+import sys
+
+import torch
+from torch.utils.data import DataLoader
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from src.data.kla_dataset import KLADataset
+from models.baseline_sr import BaselineSR
+
+
+DATA_DIR = PROJECT_ROOT / "data" / "raw" / "train" / "train"
+
+
+def test_model_with_dataset():
+    dataset = KLADataset(DATA_DIR)
+
+    loader = DataLoader(
+        dataset,
+        batch_size=4,
+        shuffle=True,
+        num_workers=0,
+    )
+
+    batch = next(iter(loader))
+
+    model = BaselineSR()
+
+    prediction = model(batch["noisy"])
+
+    assert prediction.shape == batch["gt"].shape
+
+    loss = torch.nn.functional.l1_loss(
+        prediction,
+        batch["gt"],
+    )
+
+    assert torch.isfinite(loss)
+    assert loss.item() >= 0
+
+========== tests\test_nafnet_lite.py ==========
+import torch
+
+from src.models.nafnet_lite import NAFNetLite
+
+
+def test_nafnet_lite_forward():
+
+    model = NAFNetLite(
+        in_channels=3,
+        out_channels=3,
+        width=32,
+        num_blocks=5,
+    )
+
+    x = torch.randn(
+        2,
+        3,
+        64,
+        64,
+    )
+
+    y = model(x)
+
+    assert y.shape == x.shape
+
+    assert torch.isfinite(y).all()
+
+========== tests\test_residual_model.py ==========
+import torch
+
+from models.residual_sr import ResidualSR
+
+
+def test_residual_model_forward():
+
+    model = ResidualSR()
+
+    x = torch.randn(
+        2,
+        1,
+        128,
+        128
+    )
+
+    y = model(x)
+
+    assert y.shape == (
+        2,
+        1,
+        256,
+        256
+    )
+
+    assert torch.isfinite(y).all()
+
+========== tests\test_training_step.py ==========
+from pathlib import Path
+import sys
+
+import torch
+from torch.utils.data import DataLoader
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from src.data.kla_dataset import KLADataset
+from models.baseline_sr import BaselineSR
+
+
+DATA_DIR = PROJECT_ROOT / "data" / "raw" / "train" / "train"
+
+
+def test_training_step():
+    dataset = KLADataset(DATA_DIR)
+
+    loader = DataLoader(
+        dataset,
+        batch_size=4,
+        shuffle=True,
+        num_workers=0,
+    )
+
+    batch = next(iter(loader))
+
+    model = BaselineSR()
+
+    optimizer = torch.optim.Adam(
+        model.parameters(),
+        lr=1e-4,
+    )
+
+    criterion = torch.nn.L1Loss()
+
+    prediction = model(batch["noisy"])
+    loss_before = criterion(prediction, batch["gt"])
+
+    optimizer.zero_grad()
+    loss_before.backward()
+    optimizer.step()
+
+    prediction_after = model(batch["noisy"])
+    loss_after = criterion(prediction_after, batch["gt"])
+
+    assert torch.isfinite(loss_before)
+    assert torch.isfinite(loss_after)
+
+========== tests\test_wavelet_sr.py ==========
+import torch
+
+from src.models.wavelet_sr import WaveletSR
+
+
+def test_wavelet_sr_forward():
+
+    device = torch.device(
+        "cuda"
+        if torch.cuda.is_available()
+        else "cpu"
+    )
+
+    model = WaveletSR().to(device)
+
+    x = torch.randn(
+        2,
+        1,
+        128,
+        128,
+        device=device,
+    )
+
+    model.eval()
+
+    with torch.no_grad():
+        y = model(x)
+
+    # SIV-AI is a 2x super-resolution model.
+    assert y.shape == (
+        2,
+        1,
+        256,
+        256,
+    )
+
+
+def test_wavelet_sr_backward():
+
+    device = torch.device(
+        "cuda"
+        if torch.cuda.is_available()
+        else "cpu"
+    )
+
+    model = WaveletSR().to(device)
+
+    x = torch.randn(
+        1,
+        1,
+        128,
+        128,
+        device=device,
+        requires_grad=True,
+    )
+
+    y = model(x)
+
+    # The target must have the same resolution as the SR output.
+    target = torch.randn(
+        1,
+        1,
+        256,
+        256,
+        device=device,
+    )
+
+    loss = torch.mean(
+        (y - target) ** 2
+    )
+
+    loss.backward()
+
+    # Verify that gradients reached the input.
+    assert x.grad is not None
+
+    # Verify that at least one trainable parameter
+    # received a gradient.
+    has_parameter_gradient = any(
+        parameter.grad is not None
+        for parameter in model.parameters()
+        if parameter.requires_grad
+    )
+
+    assert has_parameter_gradient
+
+========== training\train.py ==========
+from pathlib import Path
+import sys
+import random
+
+import numpy as np
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader, Subset
+
+
+# --------------------------------------------------
+# Add project root to Python path
+# --------------------------------------------------
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from src.data.kla_dataset import KLADataset
+from models.baseline_sr import BaselineSR
+
+
+# --------------------------------------------------
+# Configuration
+# --------------------------------------------------
+
+DATA_DIR = ROOT / "data" / "raw" / "train" / "train"
+CHECKPOINT_DIR = ROOT / "checkpoints"
+
+DAY2_CHECKPOINT = CHECKPOINT_DIR / "baseline_day2_best.pth"
+DAY3_CHECKPOINT = CHECKPOINT_DIR / "baseline_day3_best.pth"
+
+BATCH_SIZE = 4
+EPOCHS = 3
+LEARNING_RATE = 1e-4
+
+SEED = 42
+VAL_RATIO = 0.2
+
+
+# --------------------------------------------------
+# Reproducibility
+# --------------------------------------------------
+
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+
+
+# --------------------------------------------------
+# Main training function
+# --------------------------------------------------
+
+def main():
+
+    # --------------------------------------------------
+    # Set seed
+    # --------------------------------------------------
+
+    set_seed(SEED)
+
+    # --------------------------------------------------
+    # Select device
+    # --------------------------------------------------
+
+    device = torch.device(
+        "cuda" if torch.cuda.is_available() else "cpu"
+    )
+
+    print("Device:", device)
+
+    if device.type == "cuda":
+        print("GPU:", torch.cuda.get_device_name(0))
+
+    # --------------------------------------------------
+    # Create checkpoint directory
+    # --------------------------------------------------
+
+    CHECKPOINT_DIR.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+    # --------------------------------------------------
+    # Load dataset
+    # --------------------------------------------------
+
+    dataset = KLADataset(DATA_DIR)
+
+    print("Total dataset size:", len(dataset))
+
+    # --------------------------------------------------
+    # Train / validation split
+    # --------------------------------------------------
+
+    generator = torch.Generator().manual_seed(SEED)
+
+    indices = torch.randperm(
+        len(dataset),
+        generator=generator
+    ).tolist()
+
+    val_size = int(
+        len(dataset) * VAL_RATIO
+    )
+
+    train_indices = indices[:-val_size]
+    val_indices = indices[-val_size:]
+
+    train_dataset = Subset(
+        dataset,
+        train_indices
+    )
+
+    val_dataset = Subset(
+        dataset,
+        val_indices
+    )
+
+    print("Training samples:", len(train_dataset))
+    print("Validation samples:", len(val_dataset))
+
+    # --------------------------------------------------
+    # DataLoaders
+    # --------------------------------------------------
+
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=True,
+        num_workers=0,
+        pin_memory=(device.type == "cuda"),
+    )
+
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=False,
+        num_workers=0,
+        pin_memory=(device.type == "cuda"),
+    )
+
+    # --------------------------------------------------
+    # Create model
+    # --------------------------------------------------
+
+    model = BaselineSR().to(device)
+
+    # --------------------------------------------------
+    # Load Day 2 best checkpoint
+    # --------------------------------------------------
+
+    if DAY2_CHECKPOINT.exists():
+
+        checkpoint = torch.load(
+            DAY2_CHECKPOINT,
+            map_location=device
+        )
+
+        model.load_state_dict(
+            checkpoint["model_state_dict"]
+        )
+
+        print(
+            "Loaded Day 2 checkpoint for Day 3 fine-tuning"
+        )
+
+    else:
+
+        print(
+            "Day 2 checkpoint not found; "
+            "starting from scratch"
+        )
+
+    # --------------------------------------------------
+    # Loss function
+    # --------------------------------------------------
+
+    criterion = nn.L1Loss()
+
+    # --------------------------------------------------
+    # Optimizer
+    # --------------------------------------------------
+
+    optimizer = torch.optim.Adam(
+        model.parameters(),
+        lr=LEARNING_RATE,
+    )
+
+    # --------------------------------------------------
+    # Best validation loss
+    # --------------------------------------------------
+
+    best_val_loss = float("inf")
+
+    # --------------------------------------------------
+    # Epoch loop
+    # --------------------------------------------------
+
+    for epoch in range(EPOCHS):
+
+        # ==================================================
+        # Training
+        # ==================================================
+
+        model.train()
+
+        running_train_loss = 0.0
+
+        for batch_idx, batch in enumerate(train_loader):
+
+            noisy = batch["noisy"].to(device)
+            gt = batch["gt"].to(device)
+
+            # Forward pass
+            prediction = model(noisy)
+
+            # Calculate loss
+            loss = criterion(
+                prediction,
+                gt
+            )
+
+            # Backpropagation
+            optimizer.zero_grad()
+
+            loss.backward()
+
+            optimizer.step()
+
+            running_train_loss += loss.item()
+
+            # Print progress
+            if (batch_idx + 1) % 100 == 0:
+
+                print(
+                    f"Epoch [{epoch + 1}/{EPOCHS}] "
+                    f"Train Batch "
+                    f"[{batch_idx + 1}/{len(train_loader)}] "
+                    f"Loss: {loss.item():.6f}"
+                )
+
+        # Average training loss
+        train_loss = (
+            running_train_loss /
+            len(train_loader)
+        )
+
+        # ==================================================
+        # Validation
+        # ==================================================
+
+        model.eval()
+
+        running_val_loss = 0.0
+
+        with torch.no_grad():
+
+            for batch in val_loader:
+
+                noisy = batch["noisy"].to(device)
+                gt = batch["gt"].to(device)
+
+                prediction = model(noisy)
+
+                loss = criterion(
+                    prediction,
+                    gt
+                )
+
+                running_val_loss += loss.item()
+
+        # Average validation loss
+        val_loss = (
+            running_val_loss /
+            len(val_loader)
+        )
+
+        # --------------------------------------------------
+        # Print epoch results
+        # --------------------------------------------------
+
+        print()
+
+        print(
+            f"Epoch [{epoch + 1}/{EPOCHS}] "
+            f"Train Loss: {train_loss:.6f} "
+            f"Val Loss: {val_loss:.6f}"
+        )
+
+        # --------------------------------------------------
+        # Save best checkpoint
+        # --------------------------------------------------
+
+        if val_loss < best_val_loss:
+
+            best_val_loss = val_loss
+
+            torch.save(
+                {
+                    "epoch": epoch + 1,
+                    "model_state_dict": model.state_dict(),
+                    "optimizer_state_dict": optimizer.state_dict(),
+                    "train_loss": train_loss,
+                    "val_loss": val_loss,
+                    "seed": SEED,
+                    "val_ratio": VAL_RATIO,
+                },
+                DAY3_CHECKPOINT
+            )
+
+            print(
+                f"Saved checkpoint: "
+                f"{DAY3_CHECKPOINT}"
+            )
+
+    # --------------------------------------------------
+    # Training completed
+    # --------------------------------------------------
+
+    print()
+    print("TRAINING COMPLETED")
+    print(
+        f"Best validation loss: "
+        f"{best_val_loss:.6f}"
+    )
+
+
+# --------------------------------------------------
+# Entry point
+# --------------------------------------------------
+
+if __name__ == "__main__":
+    main()
+
+========== training\train_day4.py ==========
+from pathlib import Path
+import sys
+import random
+
+import numpy as np
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader, Subset
+
+
+# --------------------------------------------------
+# Add project root to Python path
+# --------------------------------------------------
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+
+from src.data.kla_dataset import KLADataset
+from models.residual_sr import ResidualSR
+
+
+# --------------------------------------------------
+# Configuration
+# --------------------------------------------------
+
+DATA_DIR = (
+    ROOT
+    / "data"
+    / "raw"
+    / "train"
+    / "train"
+)
+
+CHECKPOINT_DIR = ROOT / "checkpoints"
+
+DAY3_CHECKPOINT = (
+    CHECKPOINT_DIR
+    / "baseline_day3_best.pth"
+)
+
+DAY4_CHECKPOINT = (
+    CHECKPOINT_DIR
+    / "residual_day4_best.pth"
+)
+
+BATCH_SIZE = 4
+EPOCHS = 3
+LEARNING_RATE = 1e-4
+
+SEED = 42
+VAL_RATIO = 0.2
+
+
+# --------------------------------------------------
+# Reproducibility
+# --------------------------------------------------
+
+def set_seed(seed):
+
+    random.seed(seed)
+    np.random.seed(seed)
+
+    torch.manual_seed(seed)
+
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+
+
+# --------------------------------------------------
+# Main
+# --------------------------------------------------
+
+def main():
+
+    # --------------------------------------------------
+    # Seed
+    # --------------------------------------------------
+
+    set_seed(SEED)
+
+    # --------------------------------------------------
+    # Device
+    # --------------------------------------------------
+
+    device = torch.device(
+        "cuda"
+        if torch.cuda.is_available()
+        else "cpu"
+    )
+
+    print("Device:", device)
+
+    if device.type == "cuda":
+        print(
+            "GPU:",
+            torch.cuda.get_device_name(0)
+        )
+
+    # --------------------------------------------------
+    # Checkpoint directory
+    # --------------------------------------------------
+
+    CHECKPOINT_DIR.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+    # --------------------------------------------------
+    # Dataset
+    # --------------------------------------------------
+
+    dataset = KLADataset(DATA_DIR)
+
+    print(
+        "Total dataset size:",
+        len(dataset)
+    )
+
+    # --------------------------------------------------
+    # Train / validation split
+    # --------------------------------------------------
+
+    generator = torch.Generator().manual_seed(
+        SEED
+    )
+
+    indices = torch.randperm(
+        len(dataset),
+        generator=generator
+    ).tolist()
+
+    val_size = int(
+        len(dataset) * VAL_RATIO
+    )
+
+    train_indices = indices[:-val_size]
+    val_indices = indices[-val_size:]
+
+    print(
+        "Training samples:",
+        len(train_indices)
+    )
+
+    print(
+        "Validation samples:",
+        len(val_indices)
+    )
+
+    # --------------------------------------------------
+    # Subsets
+    # --------------------------------------------------
+
+    train_dataset = Subset(
+        dataset,
+        train_indices
+    )
+
+    val_dataset = Subset(
+        dataset,
+        val_indices
+    )
+
+    # --------------------------------------------------
+    # DataLoaders
+    # --------------------------------------------------
+
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=True,
+        num_workers=0,
+        pin_memory=(
+            device.type == "cuda"
+        )
+    )
+
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=False,
+        num_workers=0,
+        pin_memory=(
+            device.type == "cuda"
+        )
+    )
+
+    # --------------------------------------------------
+    # Create improved model
+    # --------------------------------------------------
+
+    model = ResidualSR().to(device)
+
+    print(
+        "Model parameters:",
+        sum(
+            p.numel()
+            for p in model.parameters()
+        )
+    )
+
+    # --------------------------------------------------
+    # Loss
+    # --------------------------------------------------
+
+    criterion = nn.L1Loss()
+
+    # --------------------------------------------------
+    # Optimizer
+    # --------------------------------------------------
+
+    optimizer = torch.optim.Adam(
+        model.parameters(),
+        lr=LEARNING_RATE
+    )
+
+    # --------------------------------------------------
+    # IMPORTANT:
+    # Day 3 checkpoint is NOT loaded directly.
+    #
+    # Day 3 BaselineSR and Day 4 ResidualSR have
+    # different architectures, so their state_dicts
+    # are not compatible.
+    #
+    # Therefore Day 4 starts from scratch.
+    # --------------------------------------------------
+
+    print(
+        "Day 4 ResidualSR training starts from scratch"
+    )
+
+    # --------------------------------------------------
+    # Best validation loss
+    # --------------------------------------------------
+
+    best_val_loss = float("inf")
+
+    # --------------------------------------------------
+    # Epoch loop
+    # --------------------------------------------------
+
+    for epoch in range(EPOCHS):
+
+        # ==================================================
+        # Training
+        # ==================================================
+
+        model.train()
+
+        running_train_loss = 0.0
+
+        for batch_idx, batch in enumerate(
+            train_loader
+        ):
+
+            noisy = batch["noisy"].to(
+                device,
+                non_blocking=True
+            )
+
+            gt = batch["gt"].to(
+                device,
+                non_blocking=True
+            )
+
+            # Forward
+            prediction = model(noisy)
+
+            # Loss
+            loss = criterion(
+                prediction,
+                gt
+            )
+
+            # Backpropagation
+            optimizer.zero_grad()
+
+            loss.backward()
+
+            optimizer.step()
+
+            running_train_loss += (
+                loss.item()
+            )
+
+            if (
+                (batch_idx + 1) % 100
+                == 0
+            ):
+
+                print(
+                    f"Epoch [{epoch + 1}/{EPOCHS}] "
+                    f"Train Batch "
+                    f"[{batch_idx + 1}/{len(train_loader)}] "
+                    f"Loss: {loss.item():.6f}"
+                )
+
+        train_loss = (
+            running_train_loss
+            / len(train_loader)
+        )
+
+        # ==================================================
+        # Validation
+        # ==================================================
+
+        model.eval()
+
+        running_val_loss = 0.0
+
+        with torch.no_grad():
+
+            for batch in val_loader:
+
+                noisy = batch["noisy"].to(
+                    device,
+                    non_blocking=True
+                )
+
+                gt = batch["gt"].to(
+                    device,
+                    non_blocking=True
+                )
+
+                prediction = model(
+                    noisy
+                )
+
+                loss = criterion(
+                    prediction,
+                    gt
+                )
+
+                running_val_loss += (
+                    loss.item()
+                )
+
+        val_loss = (
+            running_val_loss
+            / len(val_loader)
+        )
+
+        # --------------------------------------------------
+        # Print epoch result
+        # --------------------------------------------------
+
+        print()
+
+        print(
+            f"Epoch [{epoch + 1}/{EPOCHS}] "
+            f"Train Loss: {train_loss:.6f} "
+            f"Val Loss: {val_loss:.6f}"
+        )
+
+        # --------------------------------------------------
+        # Save best model
+        # --------------------------------------------------
+
+        if val_loss < best_val_loss:
+
+            best_val_loss = val_loss
+
+            torch.save(
+                {
+                    "epoch": epoch + 1,
+                    "model_state_dict":
+                        model.state_dict(),
+                    "optimizer_state_dict":
+                        optimizer.state_dict(),
+                    "train_loss":
+                        train_loss,
+                    "val_loss":
+                        val_loss,
+                    "seed":
+                        SEED,
+                    "val_ratio":
+                        VAL_RATIO,
+                    "model":
+                        "ResidualSR",
+                    "num_blocks":
+                        5,
+                },
+                DAY4_CHECKPOINT
+            )
+
+            print(
+                "Saved checkpoint:",
+                DAY4_CHECKPOINT
+            )
+
+    # --------------------------------------------------
+    # Completed
+    # --------------------------------------------------
+
+    print()
+
+    print(
+        "DAY 4 RESIDUAL TRAINING COMPLETED"
+    )
+
+    print(
+        f"Best validation loss: "
+        f"{best_val_loss:.6f}"
+    )
+
+
+# --------------------------------------------------
+# Entry point
+# --------------------------------------------------
+
+if __name__ == "__main__":
+    main()
+
+========== training\train_wavelet_sr.py ==========
+from pathlib import Path
+import sys
+import random
+
+import numpy as np
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader, Subset
+
+
+# ============================================================
+# Project root
+# ============================================================
+
+ROOT = Path(__file__).resolve().parents[1]
+
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+
+# ============================================================
+# Project imports
+# ============================================================
+
+from src.data.kla_dataset import KLADataset
+from src.models.wavelet_sr import WaveletSR
+
+
+# ============================================================
+# Configuration
+# ============================================================
+
+DATA_DIR = (
+    ROOT
+    / "data"
+    / "raw"
+    / "train"
+    / "train"
+)
+
+CHECKPOINT_DIR = ROOT / "checkpoints"
+
+CHECKPOINT = (
+    CHECKPOINT_DIR
+    / "wavelet_sr_best.pth"
+)
+
+BATCH_SIZE = 4
+
+EPOCHS = 20
+
+LEARNING_RATE = 1e-4
+
+VAL_RATIO = 0.20
+
+SEED = 42
+
+NUM_WORKERS = 0
+
+
+# ============================================================
+# Reproducibility
+# ============================================================
+
+def set_seed(seed):
+
+    random.seed(seed)
+
+    np.random.seed(seed)
+
+    torch.manual_seed(seed)
+
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+
+
+# ============================================================
+# Main
+# ============================================================
+
+def main():
+
+    print()
+    print("=" * 60)
+    print("SIV-AI WaveletSR Training")
+    print("=" * 60)
+
+    # --------------------------------------------------------
+    # Seed
+    # --------------------------------------------------------
+
+    set_seed(SEED)
+
+    # --------------------------------------------------------
+    # Device
+    # --------------------------------------------------------
+
+    device = torch.device(
+        "cuda"
+        if torch.cuda.is_available()
+        else "cpu"
+    )
+
+    print("Device:", device)
+
+    if device.type == "cuda":
+
+        print(
+            "GPU:",
+            torch.cuda.get_device_name(0)
+        )
+
+    # --------------------------------------------------------
+    # Checkpoint directory
+    # --------------------------------------------------------
+
+    CHECKPOINT_DIR.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+    # --------------------------------------------------------
+    # Dataset
+    # --------------------------------------------------------
+
+    dataset = KLADataset(DATA_DIR)
+
+    print(
+        "Total dataset size:",
+        len(dataset)
+    )
+
+    # --------------------------------------------------------
+    # Deterministic train / validation split
+    # --------------------------------------------------------
+
+    generator = torch.Generator().manual_seed(SEED)
+
+    indices = torch.randperm(
+        len(dataset),
+        generator=generator
+    ).tolist()
+
+    val_size = int(
+        len(dataset) * VAL_RATIO
+    )
+
+    train_indices = indices[:-val_size]
+
+    val_indices = indices[-val_size:]
+
+    train_dataset = Subset(
+        dataset,
+        train_indices
+    )
+
+    val_dataset = Subset(
+        dataset,
+        val_indices
+    )
+
+    print(
+        "Training samples:",
+        len(train_dataset)
+    )
+
+    print(
+        "Validation samples:",
+        len(val_dataset)
+    )
+
+    # --------------------------------------------------------
+    # Data loaders
+    # --------------------------------------------------------
+
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=True,
+        num_workers=NUM_WORKERS,
+        pin_memory=(device.type == "cuda"),
+    )
+
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=False,
+        num_workers=NUM_WORKERS,
+        pin_memory=(device.type == "cuda"),
+    )
+
+    # --------------------------------------------------------
+    # Model
+    # --------------------------------------------------------
+
+    model = WaveletSR().to(device)
+
+    parameters = sum(
+        p.numel()
+        for p in model.parameters()
+        if p.requires_grad
+    )
+
+    print(
+        "Model parameters:",
+        parameters
+    )
+
+    # --------------------------------------------------------
+    # Loss
+    # --------------------------------------------------------
+
+    criterion = nn.L1Loss()
+
+    # --------------------------------------------------------
+    # Optimizer
+    # --------------------------------------------------------
+
+    optimizer = torch.optim.AdamW(
+        model.parameters(),
+        lr=LEARNING_RATE,
+        weight_decay=1e-4,
+    )
+
+    # --------------------------------------------------------
+    # Best validation loss
+    # --------------------------------------------------------
+
+    best_val_loss = float("inf")
+
+    # --------------------------------------------------------
+    # Training
+    # --------------------------------------------------------
+
+    print()
+    print(
+        "WaveletSR training starts"
+    )
+
+    for epoch in range(1, EPOCHS + 1):
+
+        # ====================================================
+        # Training mode
+        # ====================================================
+
+        model.train()
+
+        train_loss_sum = 0.0
+
+        for batch_idx, batch in enumerate(
+            train_loader,
+            start=1
+        ):
+
+            noisy = batch["noisy"].to(
+                device,
+                non_blocking=True
+            )
+
+            gt = batch["gt"].to(
+                device,
+                non_blocking=True
+            )
+
+            # ------------------------------------------------
+            # Forward
+            # ------------------------------------------------
+
+            prediction = model(noisy)
+
+            # ------------------------------------------------
+            # Loss
+            # ------------------------------------------------
+
+            loss = criterion(
+                prediction,
+                gt
+            )
+
+            # ------------------------------------------------
+            # Backward
+            # ------------------------------------------------
+
+            optimizer.zero_grad(
+                set_to_none=True
+            )
+
+            loss.backward()
+
+            optimizer.step()
+
+            train_loss_sum += (
+                loss.item()
+            )
+
+            # ------------------------------------------------
+            # Progress
+            # ------------------------------------------------
+
+            if batch_idx % 100 == 0:
+
+                print(
+                    f"Epoch [{epoch}/{EPOCHS}] "
+                    f"Train Batch "
+                    f"[{batch_idx}/{len(train_loader)}] "
+                    f"Loss: {loss.item():.6f}"
+                )
+
+        # ====================================================
+        # Average training loss
+        # ====================================================
+
+        train_loss = (
+            train_loss_sum
+            / len(train_loader)
+        )
+
+        # ====================================================
+        # Validation
+        # ====================================================
+
+        model.eval()
+
+        val_loss_sum = 0.0
+
+        with torch.no_grad():
+
+            for batch in val_loader:
+
+                noisy = batch["noisy"].to(
+                    device,
+                    non_blocking=True
+                )
+
+                gt = batch["gt"].to(
+                    device,
+                    non_blocking=True
+                )
+
+                prediction = model(
+                    noisy
+                )
+
+                loss = criterion(
+                    prediction,
+                    gt
+                )
+
+                val_loss_sum += (
+                    loss.item()
+                )
+
+        val_loss = (
+            val_loss_sum
+            / len(val_loader)
+        )
+
+        # ====================================================
+        # Epoch results
+        # ====================================================
+
+        print()
+
+        print(
+            f"Epoch [{epoch}/{EPOCHS}] "
+            f"Train Loss: {train_loss:.6f} "
+            f"Val Loss: {val_loss:.6f}"
+        )
+
+        # ====================================================
+        # Save best checkpoint
+        # ====================================================
+
+        if val_loss < best_val_loss:
+
+            best_val_loss = val_loss
+
+            checkpoint = {
+
+                "epoch": epoch,
+
+                "model_state_dict":
+                    model.state_dict(),
+
+                "optimizer_state_dict":
+                    optimizer.state_dict(),
+
+                "train_loss":
+                    train_loss,
+
+                "val_loss":
+                    val_loss,
+
+                "seed":
+                    SEED,
+
+                "val_ratio":
+                    VAL_RATIO,
+
+                "batch_size":
+                    BATCH_SIZE,
+
+                "learning_rate":
+                    LEARNING_RATE,
+
+                "model":
+                    "WaveletSR",
+
+                "restormer_width":
+                    32,
+
+                "restormer_blocks":
+                    4,
+
+                "restormer_heads":
+                    4,
+
+                "nafnet_width":
+                    32,
+
+                "nafnet_blocks":
+                    5,
+            }
+
+            torch.save(
+                checkpoint,
+                CHECKPOINT
+            )
+
+            print(
+                "Saved checkpoint:",
+                CHECKPOINT
+            )
+
+    # ========================================================
+    # Complete
+    # ========================================================
+
+    print()
+    print("=" * 60)
+    print("WAVELETSR TRAINING COMPLETED")
+    print("=" * 60)
+
+    print(
+        "Best validation loss:",
+        f"{best_val_loss:.6f}"
+    )
+
+    print(
+        "Checkpoint:",
+        CHECKPOINT
+    )
+
+
+# ============================================================
+# Entry point
+# ============================================================
+
+if __name__ == "__main__":
+    main()
+
+[3] WEIGHTS
+
+
+[4] OUTPUTS
+
+FullName                                                        Length LastWriteT
+                                                                       ime       
+--------                                                        ------ ----------
+E:\project\SIV_AI\outputs\day2_baseline\ground_truth.png         36600 12-Aug-...
+E:\project\SIV_AI\outputs\day2_baseline\noisy.png                12481 12-Aug-...
+E:\project\SIV_AI\outputs\day2_baseline\restored.png             24843 12-Aug-...
+E:\project\SIV_AI\outputs\day5_final\ground_truth.png            36600 13-Aug-...
+E:\project\SIV_AI\outputs\day5_final\noisy.png                   12481 13-Aug-...
+E:\project\SIV_AI\outputs\day5_final\restored.png                30215 13-Aug-...
+E:\project\SIV_AI\outputs\day5_final\web_test_restored.png       30316 13-Aug-...
+E:\project\SIV_AI\outputs\degraded\blurred.png                    2299 11-Aug-...
+E:\project\SIV_AI\outputs\degraded\degraded.png                  42859 11-Aug-...
+E:\project\SIV_AI\outputs\degraded\noisy.png                     41457 11-Aug-...
+E:\project\SIV_AI\outputs\degraded\original.png                   1082 11-Aug-...
+E:\project\SIV_AI\outputs\final_comparison\final_comparison.png 104484 13-Aug-...
+E:\project\SIV_AI\outputs\inspection\sample_000000.png          462519 11-Aug-...
+
+
+
+
+[5] GIT STATUS
+?? evaluation/evaluate_dataset_day3.py
+?? evaluation/evaluate_final_comparison.py
+?? evaluation/evaluate_wavelet_comparison.py
+?? evaluation/generate_visual_comparison.py
+?? project_report.txt
+?? results/
+?? src/models/nafnet_lite.py
+?? src/models/restormer_lite.py
+?? src/models/siv_wavelet_sr.py
+?? src/models/wavelet_sr.py
+?? src/wavelet/
+?? tests/test_nafnet_lite.py
+?? tests/test_wavelet_sr.py
+?? training/train_wavelet_sr.py
+
+========================================
+REPORT COMPLETE
+========================================

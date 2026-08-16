@@ -1,0 +1,27 @@
+{
+    "project": "SIV-AI",
+    "phase": "Phase 4",
+    "checkpoint": "/content/drive/MyDrive/SIV_AI_KLA/checkpoints/phase4/siv_ai_phase4_best.pth",
+    "epoch": 11,
+    "best_psnr": 0.0,
+    "best_ssim": 0.7613433033227921,
+    "parameter_count": 110049,
+    "approx_fp32_size_mb": 0.4198036193847656,
+    "architecture_warning": "The exact Phase-4 Python model class must be copied to VS Code. Do not invent or modify the architecture.",
+    "input_shape": [
+        1,
+        128,
+        128
+    ],
+    "output_shape": [
+        1,
+        256,
+        256
+    ],
+    "input_channels": 1,
+    "output_channels": 1,
+    "input_range": "NoisyLR may extend outside [0,1]",
+    "gt_range": "[0,1]",
+    "training_framework": "PyTorch",
+    "device_used": "CUDA"
+}
