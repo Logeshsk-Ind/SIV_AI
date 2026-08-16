@@ -6,6 +6,14 @@
 document.addEventListener("DOMContentLoaded", () => {
 
     /* =====================================================
+       BACKEND
+    ===================================================== */
+
+    const BACKEND_URL =
+        "https://siv-ai-backend.onrender.com";
+
+
+    /* =====================================================
        ELEMENTS
     ===================================================== */
 
@@ -84,7 +92,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     imageInput.addEventListener("change", (event) => {
 
-        const file = event.target.files[0];
+        const file =
+            event.target.files[0];
 
         if (file) {
 
@@ -154,9 +163,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         restoreButton.disabled = false;
 
+
         /*
-         * Browser preview is possible for normal image
-         * formats. NPY cannot be previewed directly.
+         * Browser preview for normal image files.
          */
 
         if (
@@ -186,7 +195,7 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
 
             /*
-             * NPY file
+             * NPY file.
              */
 
             inputPreview.classList.add(
@@ -207,7 +216,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         /*
-         * Reset previous result
+         * Reset previous result.
          */
 
         outputPreview.classList.add(
@@ -232,6 +241,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         restoredBlob = null;
 
+
         if (restoredURL) {
 
             URL.revokeObjectURL(
@@ -246,7 +256,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     /* =====================================================
-       RESTORE
+       RESTORE IMAGE
     ===================================================== */
 
     restoreButton.addEventListener(
@@ -309,12 +319,12 @@ document.addEventListener("DOMContentLoaded", () => {
             try {
 
                 /* -----------------------------------------
-                   SEND TO FASTAPI
+                   SEND TO RENDER FASTAPI BACKEND
                 ----------------------------------------- */
 
                 const response =
                     await fetch(
-                        "/api/restore",
+                        `${BACKEND_URL}/api/restore`,
                         {
                             method: "POST",
                             body: formData
@@ -347,7 +357,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     } catch (_) {
 
-                        /* Ignore JSON parsing error */
+                        /*
+                         * Response was not JSON.
+                         */
 
                     }
 
@@ -379,13 +391,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
                 /* -----------------------------------------
-                   GET IMAGE
+                   GET RESTORED IMAGE
                 ----------------------------------------- */
 
                 const blob =
                     await response.blob();
 
-                restoredBlob = blob;
+                restoredBlob =
+                    blob;
 
 
                 /* -----------------------------------------
@@ -438,16 +451,22 @@ document.addEventListener("DOMContentLoaded", () => {
                     measuredRuntime.toFixed(4);
 
 
+                /*
+                 * IMPORTANT:
+                 * Do not fake PSNR/SSIM when the backend
+                 * does not return them.
+                 */
+
                 psnrValue.textContent =
                     psnrHeader
                         ? `${psnrHeader} dB`
-                        : "27.9101 dB";
+                        : "N/A";
 
 
                 ssimValue.textContent =
                     ssimHeader
                         ? ssimHeader
-                        : "0.7530";
+                        : "N/A";
 
 
                 runtimeValue.textContent =
@@ -471,8 +490,17 @@ document.addEventListener("DOMContentLoaded", () => {
                     false;
 
 
+                /* -----------------------------------------
+                   CONSOLE
+                ----------------------------------------- */
+
                 console.log(
                     "SIV-AI restoration complete"
+                );
+
+                console.log(
+                    "Backend:",
+                    BACKEND_URL
                 );
 
                 console.log(
@@ -508,9 +536,27 @@ document.addEventListener("DOMContentLoaded", () => {
                 );
 
 
+                /*
+                 * Give a more useful error message.
+                 */
+
+                let errorMessage =
+                    error.message;
+
+
+                if (
+                    error instanceof TypeError
+                ) {
+
+                    errorMessage =
+                        "Unable to connect to the SIV-AI backend. Please make sure the Render backend is running.";
+
+                }
+
+
                 alert(
                     "Restoration failed.\n\n"
-                    + error.message
+                    + errorMessage
                 );
 
 
@@ -526,7 +572,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     /* =====================================================
-       DOWNLOAD
+       DOWNLOAD RESTORED IMAGE
     ===================================================== */
 
     downloadButton.addEventListener(
@@ -551,7 +597,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     "a"
                 );
 
-            link.href = url;
+
+            link.href =
+                url;
+
 
             link.download =
                 (
@@ -570,7 +619,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 link
             );
 
+
             link.click();
+
 
             link.remove();
 
@@ -604,6 +655,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 ".faq-question"
             );
 
+
         const answer =
             item.querySelector(
                 ".faq-answer"
@@ -621,7 +673,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
                 /*
-                 * Close all FAQ items
+                 * Close all FAQ items.
                  */
 
                 faqItems.forEach(
@@ -631,10 +683,12 @@ document.addEventListener("DOMContentLoaded", () => {
                             "active"
                         );
 
+
                         const otherAnswer =
                             otherItem.querySelector(
                                 ".faq-answer"
                             );
+
 
                         if (otherAnswer) {
 
@@ -648,7 +702,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
                 /*
-                 * Open clicked item
+                 * Open clicked item.
                  */
 
                 if (!isActive) {
@@ -656,6 +710,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     item.classList.add(
                         "active"
                     );
+
 
                     answer.style.maxHeight =
                         answer.scrollHeight
@@ -677,6 +732,7 @@ document.addEventListener("DOMContentLoaded", () => {
         document.querySelectorAll(
             ".rating button"
         );
+
 
     let selectedRating = 0;
 
@@ -701,6 +757,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                 Number(
                                     btn.dataset.rating
                                 );
+
 
                             btn.classList.toggle(
                                 "selected",
@@ -735,15 +792,18 @@ document.addEventListener("DOMContentLoaded", () => {
                         "feedbackType"
                     ).value;
 
+
                 const name =
                     document.getElementById(
                         "feedbackName"
                     ).value;
 
+
                 const email =
                     document.getElementById(
                         "feedbackEmail"
                     ).value;
+
 
                 const comments =
                     document.getElementById(
@@ -755,7 +815,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     const response =
                         await fetch(
-                            "/api/feedback",
+                            `${BACKEND_URL}/api/feedback`,
                             {
                                 method: "POST",
 
@@ -780,8 +840,33 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     if (!response.ok) {
 
+                        let message =
+                            "Feedback submission failed.";
+
+                        try {
+
+                            const errorData =
+                                await response.json();
+
+                            if (
+                                errorData.detail
+                            ) {
+
+                                message =
+                                    errorData.detail;
+
+                            }
+
+                        } catch (_) {
+
+                            /*
+                             * Ignore JSON parsing error.
+                             */
+
+                        }
+
                         throw new Error(
-                            "Feedback submission failed."
+                            message
                         );
 
                     }
@@ -811,11 +896,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 } catch (error) {
 
                     console.error(
+                        "Feedback error:",
                         error
                     );
 
+
                     alert(
-                        "Unable to submit feedback."
+                        "Unable to submit feedback.\n\n"
+                        + error.message
                     );
 
                 }
@@ -844,5 +932,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         }
     );
+
 
 });
