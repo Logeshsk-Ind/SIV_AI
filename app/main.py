@@ -62,7 +62,7 @@ if str(INFERENCE_DIR) not in sys.path:
 
 
 # ============================================================
-# IMPORT ACTUAL PHASE-4 INFERENCE
+# IMPORT PHASE-4 INFERENCE
 # ============================================================
 
 try:
@@ -112,34 +112,49 @@ app = FastAPI(
 # ============================================================
 
 # IMPORTANT:
-# Browser Origin contains only:
+#
+# Browser Origin for GitHub Pages is:
 #
 # https://logeshsk-ind.github.io
 #
-# NOT:
+# The /SIV_AI repository path is NOT part of the origin.
+#
+# Therefore DO NOT use:
 #
 # https://logeshsk-ind.github.io/SIV_AI
 #
-# The repository path is NOT part of the origin.
+# in allow_origins.
+
 
 ALLOWED_ORIGINS = [
 
+    # --------------------------------------------------------
+    # GitHub Pages
+    # --------------------------------------------------------
+
     "https://logeshsk-ind.github.io",
 
+    # --------------------------------------------------------
     # Local development
+    # --------------------------------------------------------
+
     "http://localhost:8000",
+
     "http://127.0.0.1:8000",
 
     "http://localhost:5500",
+
     "http://127.0.0.1:5500",
 
     "http://localhost:3000",
+
     "http://127.0.0.1:3000",
 
 ]
 
 
 app.add_middleware(
+
     CORSMiddleware,
 
     allow_origins=ALLOWED_ORIGINS,
@@ -155,12 +170,19 @@ app.add_middleware(
     ],
 
     expose_headers=[
+
         "X-SIV-AI-Runtime",
+
         "X-SIV-AI-PSNR",
+
         "X-SIV-AI-SSIM",
+
         "X-SIV-AI-Input",
+
         "X-SIV-AI-Output",
+
     ],
+
 )
 
 
@@ -169,9 +191,13 @@ app.add_middleware(
 # ============================================================
 
 DEVICE = torch.device(
+
     "cuda"
+
     if torch.cuda.is_available()
+
     else "cpu"
+
 )
 
 
@@ -204,20 +230,47 @@ SUPPORTED_EXTENSIONS = {
 # MODEL INFORMATION
 # ============================================================
 
-MODEL_NAME = "SIV-AI Phase-4"
+MODEL_NAME = (
+    "SIV-AI Phase-4"
+)
 
-MODEL_PARAMETERS = 110049
 
-MODEL_INPUT_SIZE = "128x128"
+MODEL_PARAMETERS = (
+    110049
+)
 
-MODEL_OUTPUT_SIZE = "256x256"
+
+MODEL_INPUT_SIZE = (
+    "128x128"
+)
+
+
+MODEL_OUTPUT_SIZE = (
+    "256x256"
+)
+
 
 MODEL_CHECKPOINT = (
     "siv_ai_phase4_best.pth"
 )
 
+
 MODEL_INFERENCE = (
     "inference/infer_phase4.py"
+)
+
+
+# ============================================================
+# OFFICIAL MODEL METRICS
+# ============================================================
+
+MODEL_PSNR = (
+    "27.9101"
+)
+
+
+MODEL_SSIM = (
+    "0.7530"
 )
 
 
@@ -229,7 +282,9 @@ print()
 
 print("=" * 70)
 
-print("SIV-AI WEB BACKEND")
+print(
+    "SIV-AI WEB BACKEND"
+)
 
 print("=" * 70)
 
@@ -253,6 +308,16 @@ print(
 print(
     "Checkpoint:",
     ROOT / MODEL_CHECKPOINT
+)
+
+print(
+    "Input size:",
+    MODEL_INPUT_SIZE
+)
+
+print(
+    "Output size:",
+    MODEL_OUTPUT_SIZE
 )
 
 print()
@@ -295,7 +360,9 @@ except Exception as exc:
 
     print("=" * 70)
 
-    print("MODEL LOADING FAILED")
+    print(
+        "MODEL LOADING FAILED"
+    )
 
     print("=" * 70)
 
@@ -320,7 +387,7 @@ print()
 
 
 # ============================================================
-# ROOT HEALTH CHECK
+# ROOT ENDPOINT
 # ============================================================
 
 @app.get("/")
@@ -337,11 +404,17 @@ async def root():
         "model":
             MODEL_NAME,
 
+        "version":
+            "1.0.0",
+
         "docs":
             "/docs",
 
         "health":
             "/api/health",
+
+        "restore":
+            "/api/restore",
 
     }
 
@@ -373,7 +446,9 @@ async def health():
         "gpu":
             (
                 torch.cuda.get_device_name(0)
+
                 if torch.cuda.is_available()
+
                 else "CPU"
             ),
 
@@ -392,6 +467,12 @@ async def health():
         "inference":
             MODEL_INFERENCE,
 
+        "psnr":
+            MODEL_PSNR,
+
+        "ssim":
+            MODEL_SSIM,
+
     }
 
 
@@ -401,14 +482,18 @@ async def health():
 
 @app.post("/api/restore")
 async def restore_image(
+
     file: UploadFile = File(...)
+
 ):
 
     # ========================================================
     # START TIMER
     # ========================================================
 
-    start_time = time.perf_counter()
+    start_time = (
+        time.perf_counter()
+    )
 
 
     # ========================================================
@@ -418,23 +503,30 @@ async def restore_image(
     if not file.filename:
 
         raise HTTPException(
+
             status_code=400,
+
             detail="No file selected."
+
         )
 
 
     original_name = Path(
+
         file.filename
+
     ).name
 
 
     extension = Path(
+
         original_name
+
     ).suffix.lower()
 
 
     # ========================================================
-    # VALIDATE FORMAT
+    # VALIDATE FILE FORMAT
     # ========================================================
 
     if extension not in SUPPORTED_EXTENSIONS:
@@ -444,9 +536,13 @@ async def restore_image(
             status_code=400,
 
             detail=(
+
                 "Unsupported image format. "
+
                 "Please upload NPY, PNG, JPG, JPEG, "
+
                 "BMP, TIF, TIFF or WEBP."
+
             )
 
         )
@@ -467,8 +563,11 @@ async def restore_image(
             status_code=400,
 
             detail=(
+
                 "Unable to read uploaded file: "
+
                 f"{exc}"
+
             )
 
         )
@@ -486,21 +585,35 @@ async def restore_image(
 
 
     # ========================================================
-    # TEMP FILE NAMES
+    # CREATE UNIQUE TEMP FILE NAMES
     # ========================================================
 
-    timestamp = time.time_ns()
+    timestamp = (
+        time.time_ns()
+    )
 
 
     input_path = (
+
         TEMP_DIR
-        / f"input_{timestamp}{extension}"
+
+        / (
+            f"input_{timestamp}"
+            f"{extension}"
+        )
+
     )
 
 
     output_path = (
+
         TEMP_DIR
-        / f"output_{timestamp}_restored.png"
+
+        / (
+            f"output_{timestamp}"
+            "_restored.png"
+        )
+
     )
 
 
@@ -521,8 +634,11 @@ async def restore_image(
             status_code=500,
 
             detail=(
+
                 "Unable to save uploaded file: "
+
                 f"{exc}"
+
             )
 
         )
@@ -561,7 +677,7 @@ async def restore_image(
 
 
     # ========================================================
-    # RUN ACTUAL PHASE-4 MODEL
+    # RUN PHASE-4 MODEL
     # ========================================================
 
     try:
@@ -666,8 +782,11 @@ async def restore_image(
             status_code=500,
 
             detail=(
+
                 "SIV-AI inference failed: "
+
                 f"{exc}"
+
             )
 
         )
@@ -688,8 +807,11 @@ async def restore_image(
             status_code=500,
 
             detail=(
+
                 "Inference completed, "
+
                 "but no restored image was created."
+
             )
 
         )
@@ -700,8 +822,11 @@ async def restore_image(
     # ========================================================
 
     elapsed = (
+
         time.perf_counter()
+
         - start_time
+
     )
 
 
@@ -712,7 +837,9 @@ async def restore_image(
     try:
 
         output_bytes = (
+
             output_path.read_bytes()
+
         )
 
     except Exception as exc:
@@ -730,8 +857,11 @@ async def restore_image(
             status_code=500,
 
             detail=(
+
                 "Unable to read restored output: "
+
                 f"{exc}"
+
             )
 
         )
@@ -742,11 +872,15 @@ async def restore_image(
     # ========================================================
 
     input_path.unlink(
+
         missing_ok=True
+
     )
 
     output_path.unlink(
+
         missing_ok=True
+
     )
 
 
@@ -759,6 +893,8 @@ async def restore_image(
     print(
         "INFERENCE COMPLETE"
     )
+
+    print()
 
     print(
         "Runtime:",
@@ -777,12 +913,12 @@ async def restore_image(
 
     print(
         "PSNR:",
-        "27.9101 dB"
+        f"{MODEL_PSNR} dB"
     )
 
     print(
         "SSIM:",
-        "0.7530"
+        MODEL_SSIM
     )
 
     print("=" * 70)
@@ -806,7 +942,7 @@ async def restore_image(
 
 
     # ========================================================
-    # RETURN PNG
+    # RETURN RESTORED PNG
     # ========================================================
 
     return Response(
@@ -828,10 +964,10 @@ async def restore_image(
                 f"{elapsed:.4f}",
 
             "X-SIV-AI-PSNR":
-                "27.9101",
+                MODEL_PSNR,
 
             "X-SIV-AI-SSIM":
-                "0.7530",
+                MODEL_SSIM,
 
             "X-SIV-AI-Input":
                 MODEL_INPUT_SIZE,
@@ -867,7 +1003,9 @@ class Feedback(BaseModel):
 
 @app.post("/api/feedback")
 async def submit_feedback(
+
     feedback: Feedback
+
 ):
 
     print()
@@ -907,6 +1045,8 @@ async def submit_feedback(
 
     print("=" * 70)
 
+    print()
+
 
     return {
 
@@ -930,9 +1070,11 @@ if STATIC_DIR.exists():
         "/static",
 
         StaticFiles(
+
             directory=str(
                 STATIC_DIR
             )
+
         ),
 
         name="static"
@@ -941,14 +1083,17 @@ if STATIC_DIR.exists():
 
 
 # ============================================================
-# HOME PAGE
+# OPTIONAL LOCAL FRONTEND
 # ============================================================
 
 @app.get("/app")
 async def app_home():
 
     index_file = (
-        STATIC_DIR / "index.html"
+
+        STATIC_DIR
+        / "index.html"
+
     )
 
 
@@ -959,15 +1104,20 @@ async def app_home():
             status_code=404,
 
             detail=(
-                "Frontend not found:\n"
+
+                "Frontend not found: "
+
                 f"{index_file}"
+
             )
 
         )
 
 
     return FileResponse(
+
         index_file
+
     )
 
 
@@ -991,6 +1141,23 @@ if __name__ == "__main__":
         )
 
     )
+
+
+    print()
+
+    print("=" * 70)
+
+    print(
+        "STARTING SIV-AI SERVER"
+    )
+
+    print(
+        f"PORT: {port}"
+    )
+
+    print("=" * 70)
+
+    print()
 
 
     uvicorn.run(
