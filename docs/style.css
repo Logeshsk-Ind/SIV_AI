@@ -1,0 +1,3579 @@
+/* =========================================================
+   SIV-AI
+   Main Website Styles
+========================================================= */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --bg: #030608;
+    --bg-soft: #070b0f;
+
+    --panel: #ffffff;
+    --panel-dark: #0b1117;
+
+    --cyan: #00e5ff;
+    --cyan-dark: #00aabd;
+
+    --text: #e9f4f7;
+    --dark-text: #101820;
+
+    --muted: #82929a;
+    --border: #20303a;
+
+    --shadow:
+        0 20px 50px rgba(0, 0, 0, 0.35);
+
+    --max-width: 1180px;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    background:
+        radial-gradient(
+            circle at 80% 10%,
+            rgba(0, 229, 255, 0.06),
+            transparent 25%
+        ),
+        var(--bg);
+
+    color: var(--text);
+
+    font-family:
+        Inter,
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    line-height: 1.5;
+
+    overflow-x: hidden;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+    font: inherit;
+}
+
+
+/* =========================================================
+   NAVBAR
+========================================================= */
+
+.navbar {
+    position: fixed;
+
+    top: 0;
+    left: 0;
+
+    width: 100%;
+
+    z-index: 1000;
+
+    background:
+        rgba(3, 6, 8, 0.88);
+
+    backdrop-filter:
+        blur(16px);
+
+    border-bottom:
+        1px solid rgba(255, 255, 255, 0.05);
+}
+
+.nav-container {
+    width: min(
+        calc(100% - 40px),
+        var(--max-width)
+    );
+
+    height: 72px;
+
+    margin: auto;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+}
+
+.logo {
+    font-size: 24px;
+
+    font-weight: 900;
+
+    letter-spacing: -1px;
+}
+
+.logo span {
+    color: var(--cyan);
+}
+
+.nav-links {
+    display: flex;
+
+    gap: 28px;
+
+    font-size: 12px;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.08em;
+
+    color: #87969d;
+}
+
+.nav-links a {
+    transition:
+        color 0.2s ease;
+}
+
+.nav-links a:hover {
+    color: var(--cyan);
+}
+
+.nav-button {
+    border:
+        1px solid var(--cyan);
+
+    color: var(--cyan);
+
+    padding:
+        9px 16px;
+
+    font-size: 11px;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.08em;
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease;
+}
+
+.nav-button:hover {
+    background: var(--cyan);
+    color: #001014;
+}
+
+
+/* =========================================================
+   GENERIC
+========================================================= */
+
+.section {
+    width: min(
+        calc(100% - 40px),
+        var(--max-width)
+    );
+
+    margin: auto;
+
+    padding-top: 110px;
+    padding-bottom: 110px;
+}
+
+.section-title {
+    font-size: 14px;
+
+    font-weight: 800;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.08em;
+
+    color: var(--text);
+
+    margin-bottom: 25px;
+}
+
+.section-title span {
+    position: relative;
+
+    padding-left: 12px;
+}
+
+.section-title span::before {
+    content: "";
+
+    position: absolute;
+
+    left: 0;
+    top: 3px;
+
+    width: 3px;
+    height: 14px;
+
+    background: var(--cyan);
+}
+
+.centered {
+    text-align: center;
+}
+
+.hidden {
+    display: none !important;
+}
+
+
+/* =========================================================
+   HERO
+========================================================= */
+
+.hero {
+    min-height: 760px;
+
+    padding-top: 160px;
+
+    display: flex;
+
+    align-items: center;
+}
+
+.hero-container {
+    width: 100%;
+
+    display: grid;
+
+    grid-template-columns:
+        0.95fr
+        1.05fr;
+
+    gap: 65px;
+
+    align-items: center;
+}
+
+.eyebrow {
+    display: inline-block;
+
+    background: #ffffff;
+
+    color: #008b9b;
+
+    padding:
+        5px 10px;
+
+    font-size: 8px;
+
+    font-weight: 800;
+
+    letter-spacing: 0.15em;
+
+    margin-bottom: 22px;
+}
+
+.hero h1 {
+    font-size:
+        clamp(42px, 5vw, 70px);
+
+    line-height: 0.98;
+
+    letter-spacing: -0.055em;
+
+    margin-bottom: 25px;
+}
+
+.hero-description {
+    max-width: 490px;
+
+    color: #91a0a7;
+
+    font-size: 15px;
+
+    line-height: 1.7;
+
+    margin-bottom: 30px;
+}
+
+.hero-stats {
+    display: flex;
+
+    gap: 30px;
+
+    margin-bottom: 30px;
+}
+
+.stat {
+    border-left:
+        1px solid var(--cyan);
+
+    padding-left: 12px;
+
+    display: flex;
+
+    flex-direction: column;
+}
+
+.stat strong {
+    color: var(--cyan);
+
+    font-size: 16px;
+}
+
+.stat span {
+    color: #73858d;
+
+    font-size: 9px;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.1em;
+}
+
+.primary-button {
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    padding:
+        13px 18px;
+
+    background: var(--cyan);
+
+    color: #001014;
+
+    font-size: 11px;
+
+    font-weight: 800;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.05em;
+
+    box-shadow:
+        0 0 30px rgba(0, 229, 255, 0.15);
+
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.primary-button:hover {
+    transform:
+        translateY(-2px);
+
+    box-shadow:
+        0 10px 35px rgba(0, 229, 255, 0.25);
+}
+
+
+/* =========================================================
+   HERO IMAGE
+========================================================= */
+
+.hero-visual {
+    position: relative;
+}
+
+.image-frame {
+    background: #11191e;
+
+    border:
+        2px solid var(--cyan);
+
+    padding: 12px;
+
+    box-shadow:
+        0 0 40px rgba(0, 229, 255, 0.13);
+
+    position: relative;
+}
+
+.image-frame::before,
+.image-frame::after {
+    content: "";
+
+    position: absolute;
+
+    width: 20px;
+    height: 20px;
+
+    border-color: var(--cyan);
+
+    pointer-events: none;
+}
+
+.image-frame::before {
+    left: -6px;
+    top: -6px;
+
+    border-left: 3px solid;
+    border-top: 3px solid;
+}
+
+.image-frame::after {
+    right: -6px;
+    bottom: -6px;
+
+    border-right: 3px solid;
+    border-bottom: 3px solid;
+}
+
+.frame-top,
+.frame-bottom {
+    display: flex;
+
+    justify-content: space-between;
+
+    font-family:
+        "Courier New",
+        monospace;
+
+    font-size: 7px;
+
+    color: #9baab0;
+
+    margin-bottom: 8px;
+}
+
+.frame-bottom {
+    margin:
+        8px 0 0;
+}
+
+.comparison {
+    height: 350px;
+
+    display: grid;
+
+    grid-template-columns:
+        1fr 18px 1fr;
+}
+
+.comparison-image {
+    position: relative;
+
+    overflow: hidden;
+
+    background:
+        linear-gradient(
+            135deg,
+            #7b8083,
+            #2f3437
+        );
+}
+
+.comparison-divider {
+    background: var(--cyan);
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+    color: #001014;
+
+    font-weight: 900;
+
+    font-size: 12px;
+}
+
+.fake-sem {
+    position: absolute;
+
+    inset: 0;
+
+    opacity: 0.8;
+
+    background-image:
+        linear-gradient(
+            90deg,
+            transparent 0 13%,
+            rgba(255,255,255,.4) 13.5% 14%,
+            transparent 14.5% 31%,
+            rgba(255,255,255,.35) 31.5% 32%,
+            transparent 32.5% 58%,
+            rgba(255,255,255,.5) 58.5% 59%,
+            transparent 59.5%
+        ),
+        linear-gradient(
+            0deg,
+            transparent 0 18%,
+            rgba(255,255,255,.35) 18.5% 19%,
+            transparent 19.5% 42%,
+            rgba(255,255,255,.45) 42.5% 43%,
+            transparent 43.5% 76%,
+            rgba(255,255,255,.3) 76.5% 77%,
+            transparent 77.5%
+        );
+
+    transform:
+        rotate(-4deg)
+        scale(1.25);
+}
+
+.sem-right {
+    filter:
+        contrast(1.35)
+        brightness(1.15);
+}
+
+.sem-left {
+    filter:
+        blur(1px)
+        contrast(.8);
+}
+
+.image-label {
+    position: absolute;
+
+    bottom: 10px;
+    left: 10px;
+
+    background:
+        rgba(0, 0, 0, 0.65);
+
+    color: white;
+
+    padding:
+        4px 6px;
+
+    font-family:
+        "Courier New",
+        monospace;
+
+    font-size: 7px;
+}
+
+
+/* =========================================================
+   PROBLEM
+========================================================= */
+
+.problem-section {
+    padding-top: 80px;
+}
+
+.problem-section h2 {
+    font-size:
+        clamp(27px, 3vw, 42px);
+
+    line-height: 1.05;
+
+    letter-spacing: -0.04em;
+
+    margin-bottom: 40px;
+}
+
+.problem-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, 1fr);
+
+    gap: 10px;
+}
+
+.info-card {
+    background: white;
+
+    color: var(--dark-text);
+
+    min-height: 190px;
+
+    padding: 25px;
+
+    box-shadow:
+        var(--shadow);
+}
+
+.card-icon {
+    width: 28px;
+    height: 28px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    color: #6d7e85;
+
+    background: #f1f5f6;
+
+    margin-bottom: 18px;
+}
+
+.card-icon.warning {
+    color: #ff5a62;
+}
+
+.info-card h3 {
+    font-size: 14px;
+
+    margin-bottom: 8px;
+}
+
+.info-card p {
+    color: #66757c;
+
+    font-size: 11px;
+
+    line-height: 1.6;
+}
+
+
+/* =========================================================
+   WHY SIV AI
+========================================================= */
+
+.why-layout {
+    display: grid;
+
+    grid-template-columns:
+        1fr 1fr;
+
+    gap: 10px;
+}
+
+.structure-card,
+.feature-card {
+    background: white;
+
+    color: var(--dark-text);
+}
+
+.structure-card {
+    padding: 35px;
+
+    min-height: 430px;
+
+    position: relative;
+
+    overflow: hidden;
+}
+
+.feature-number {
+    color: var(--cyan-dark);
+
+    font-family:
+        "Courier New",
+        monospace;
+
+    font-size: 9px;
+
+    margin-bottom: 30px;
+}
+
+.structure-card h3 {
+    font-size: 20px;
+
+    margin-bottom: 14px;
+}
+
+.structure-card p {
+    max-width: 500px;
+
+    color: #68767c;
+
+    font-size: 11px;
+
+    line-height: 1.7;
+}
+
+.structure-visual {
+    position: absolute;
+
+    left: 25px;
+    right: 25px;
+    bottom: 25px;
+
+    height: 130px;
+
+    background:
+        linear-gradient(
+            rgba(0, 229, 255, .08) 1px,
+            transparent 1px
+        ),
+        linear-gradient(
+            90deg,
+            rgba(0, 229, 255, .08) 1px,
+            transparent 1px
+        );
+
+    background-size:
+        40px 40px;
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+}
+
+.structure-visual span {
+    color: #00a1b1;
+
+    font-family:
+        "Courier New",
+        monospace;
+
+    font-size: 7px;
+
+    letter-spacing: 0.12em;
+
+    background: white;
+
+    padding:
+        4px 10px;
+}
+
+.feature-column {
+    display: grid;
+
+    gap: 10px;
+}
+
+.feature-card {
+    padding: 24px;
+
+    display: flex;
+
+    gap: 15px;
+
+    min-height: 150px;
+}
+
+.feature-card.large {
+    min-height: 180px;
+
+    align-items: flex-start;
+}
+
+.feature-icon {
+    min-width: 28px;
+    height: 28px;
+
+    background: #f1f4f5;
+
+    display: flex;
+
+    justify-content: center;
+    align-items: center;
+
+    color: #7d8b90;
+}
+
+.feature-card h3 {
+    font-size: 13px;
+
+    margin-bottom: 7px;
+}
+
+.feature-card p {
+    color: #69777d;
+
+    font-size: 10px;
+
+    line-height: 1.6;
+}
+
+.small-feature-row {
+    display: grid;
+
+    grid-template-columns:
+        1fr 1fr;
+
+    gap: 10px;
+}
+
+
+/* =========================================================
+   RESTORATION
+========================================================= */
+
+.restore-section {
+    padding-top: 100px;
+}
+
+.restore-header {
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    border-bottom:
+        1px solid #27343a;
+
+    margin-bottom: 25px;
+}
+
+.model-status {
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    font-family:
+        "Courier New",
+        monospace;
+
+    font-size: 8px;
+
+    color: #718189;
+}
+
+.model-status strong {
+    background: #b8ffd7;
+
+    color: #006b3b;
+
+    padding:
+        3px 7px;
+}
+
+.status-dot {
+    width: 6px;
+    height: 6px;
+
+    background: #00d86b;
+
+    border-radius: 50%;
+
+    box-shadow:
+        0 0 10px #00d86b;
+}
+
+.restore-workspace {
+    display: grid;
+
+    grid-template-columns:
+        1fr
+        80px
+        1fr;
+
+    align-items: center;
+
+    gap: 15px;
+}
+
+.workspace-panel {
+    background: white;
+
+    padding: 8px;
+
+    color: var(--dark-text);
+
+    min-width: 0;
+}
+
+.workspace-header,
+.workspace-footer {
+    display: flex;
+
+    justify-content: space-between;
+
+    color: #7d898d;
+
+    font-family:
+        "Courier New",
+        monospace;
+
+    font-size: 7px;
+
+    padding:
+        5px;
+}
+
+.upload-area,
+.output-area {
+    height: 330px;
+
+    background: #e8edef;
+
+    position: relative;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    overflow: hidden;
+
+    cursor: pointer;
+
+    border:
+        1px solid #dce3e6;
+}
+
+.upload-area.dragging {
+    border:
+        2px solid var(--cyan);
+}
+
+.upload-content {
+    text-align: center;
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    gap: 5px;
+
+    padding: 20px;
+
+    background:
+        rgba(255,255,255,.88);
+}
+
+.upload-icon {
+    width: 38px;
+    height: 38px;
+
+    background: #edf2f4;
+
+    color: #819096;
+
+    display: flex;
+
+    justify-content: center;
+    align-items: center;
+
+    margin-bottom: 5px;
+}
+
+.upload-content strong {
+    font-size: 9px;
+}
+
+.upload-content span {
+    color: #7d898d;
+
+    font-size: 8px;
+}
+
+.preview-image {
+    width: 100%;
+    height: 100%;
+
+    object-fit: contain;
+
+    background: #e8edef;
+}
+
+.workspace-footer {
+    margin-top: 2px;
+}
+
+.restore-control {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 8px;
+}
+
+.control-line {
+    width: 1px;
+
+    height: 75px;
+
+    background:
+        #27343a;
+}
+
+.restore-button {
+    width: 78px;
+
+    min-height: 78px;
+
+    border: none;
+
+    background: var(--cyan);
+
+    color: #001014;
+
+    font-size: 7px;
+
+    font-weight: 900;
+
+    cursor: pointer;
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 5px;
+
+    transition:
+        transform .2s ease,
+        box-shadow .2s ease;
+}
+
+.restore-button:hover {
+    transform:
+        scale(1.04);
+
+    box-shadow:
+        0 0 25px rgba(0,229,255,.3);
+}
+
+.restore-button:disabled {
+    opacity: .45;
+
+    cursor: not-allowed;
+
+    transform: none;
+}
+
+.button-icon {
+    font-size: 13px;
+}
+
+.control-caption {
+    color: #6e7d83;
+
+    font-family:
+        "Courier New",
+        monospace;
+
+    font-size: 6px;
+
+    white-space: nowrap;
+}
+
+.output-placeholder {
+    position: absolute;
+
+    inset: 0;
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+    text-align: center;
+
+    color: #89959a;
+}
+
+#waitingText {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 5px;
+
+    font-family:
+        "Courier New",
+        monospace;
+
+    font-size: 8px;
+}
+
+#waitingText strong {
+    font-size: 8px;
+}
+
+.output-loader {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    gap: 10px;
+
+    font-family:
+        "Courier New",
+        monospace;
+
+    font-size: 8px;
+}
+
+.spinner {
+    width: 28px;
+    height: 28px;
+
+    border:
+        2px solid #cad5d8;
+
+    border-top-color:
+        var(--cyan);
+
+    border-radius: 50%;
+
+    animation:
+        spin .8s linear infinite;
+}
+
+@keyframes spin {
+
+    to {
+        transform:
+            rotate(360deg);
+    }
+
+}
+
+.download-button {
+    border: none;
+
+    background: transparent;
+
+    color: #718087;
+
+    font-size: 7px;
+
+    cursor: pointer;
+}
+
+.download-button:disabled {
+    cursor: default;
+
+    opacity: .4;
+}
+
+.result-panel {
+    margin-top: 25px;
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, 1fr);
+
+    background: white;
+
+    color: var(--dark-text);
+}
+
+.result-panel div {
+    padding: 18px;
+
+    border-right:
+        1px solid #e5eaec;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 4px;
+}
+
+.result-panel span {
+    color: #7a898f;
+
+    font-family:
+        "Courier New",
+        monospace;
+
+    font-size: 7px;
+}
+
+.result-panel strong {
+    font-size: 15px;
+}
+
+
+/* =========================================================
+   FAQ
+========================================================= */
+
+.faq-container {
+    background: white;
+
+    color: var(--dark-text);
+}
+
+.faq-item {
+    border-bottom:
+        1px solid #e2e7e9;
+}
+
+.faq-question {
+    width: 100%;
+
+    background: none;
+
+    border: none;
+
+    padding:
+        16px 18px;
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    cursor: pointer;
+
+    color: #142027;
+
+    text-align: left;
+
+    font-size: 10px;
+}
+
+.plus {
+    color: #7c8b91;
+
+    font-size: 16px;
+
+    transition:
+        transform .2s ease;
+}
+
+.faq-answer {
+    max-height: 0;
+
+    overflow: hidden;
+
+    transition:
+        max-height .3s ease;
+}
+
+.faq-answer p {
+    padding:
+        0 18px 17px;
+
+    color: #6d7b81;
+
+    font-size: 10px;
+
+    line-height: 1.6;
+}
+
+.faq-item.active
+.plus {
+    transform:
+        rotate(45deg);
+
+    color: var(--cyan-dark);
+}
+
+
+/* =========================================================
+   FEEDBACK
+========================================================= */
+
+.feedback-section {
+    padding-bottom: 70px;
+}
+
+.feedback-container {
+    width: min(
+        580px,
+        100%
+    );
+
+    margin:
+        0 auto;
+}
+
+#feedbackForm {
+    background: white;
+
+    color: var(--dark-text);
+
+    padding: 25px;
+
+    box-shadow:
+        var(--shadow);
+}
+
+#feedbackForm label {
+    display: block;
+
+    color: #7a898e;
+
+    font-family:
+        "Courier New",
+        monospace;
+
+    font-size: 7px;
+
+    margin:
+        0 0 7px;
+
+    letter-spacing: .06em;
+}
+
+#feedbackForm input,
+#feedbackForm select,
+#feedbackForm textarea {
+    width: 100%;
+
+    border:
+        1px solid #e1e7e9;
+
+    background: #f7f9fa;
+
+    outline: none;
+
+    padding:
+        10px;
+
+    color: #18242a;
+
+    font-size: 9px;
+
+    margin-bottom: 16px;
+}
+
+#feedbackForm input:focus,
+#feedbackForm select:focus,
+#feedbackForm textarea:focus {
+    border-color:
+        var(--cyan);
+}
+
+.form-row {
+    display: grid;
+
+    grid-template-columns:
+        1fr 1fr;
+
+    gap: 10px;
+}
+
+.rating {
+    display: flex;
+
+    gap: 7px;
+
+    margin-bottom: 16px;
+}
+
+.rating button {
+    width: 28px;
+    height: 28px;
+
+    border:
+        1px solid #e1e7e9;
+
+    background: white;
+
+    color: #526168;
+
+    cursor: pointer;
+
+    font-size: 9px;
+}
+
+.rating button.selected {
+    background: var(--cyan);
+
+    border-color:
+        var(--cyan);
+
+    color: #001014;
+}
+
+#feedbackForm textarea {
+    min-height: 110px;
+
+    resize: vertical;
+}
+
+.feedback-button {
+    width: 100%;
+
+    border: none;
+
+    background: var(--cyan);
+
+    color: #001014;
+
+    padding: 13px;
+
+    font-size: 8px;
+
+    font-weight: 900;
+
+    cursor: pointer;
+
+    letter-spacing: .05em;
+}
+
+
+/* =========================================================
+   CONTACT
+========================================================= */
+
+.contact-card {
+    width: min(
+        400px,
+        100%
+    );
+
+    background: white;
+
+    color: var(--dark-text);
+
+    padding: 20px;
+
+    display: flex;
+
+    gap: 15px;
+}
+
+.contact-avatar {
+    width: 45px;
+    height: 45px;
+
+    background: #edf2f4;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    font-size: 10px;
+
+    font-weight: 900;
+
+    color: #7c8b90;
+}
+
+.contact-info h3 {
+    font-size: 12px;
+}
+
+.contact-info .role {
+    display: block;
+
+    color: #7d8a8f;
+
+    font-family:
+        "Courier New",
+        monospace;
+
+    font-size: 7px;
+
+    margin:
+        2px 0 6px;
+}
+
+.contact-info p {
+    color: #65737a;
+
+    font-size: 8px;
+
+    margin-bottom: 10px;
+}
+
+.email-button {
+    display: inline-block;
+
+    background: #121c22;
+
+    color: white;
+
+    padding:
+        7px 10px;
+
+    font-size: 7px;
+}
+
+
+/* =========================================================
+   FOOTER
+========================================================= */
+
+footer {
+    border-top:
+        1px solid #1a252b;
+
+    padding:
+        40px 20px;
+}
+
+.footer-inner {
+    width: min(
+        100%,
+        var(--max-width)
+    );
+
+    margin: auto;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    color: #627078;
+
+    font-size: 9px;
+}
+
+.footer-logo {
+    color: white;
+
+    font-size: 18px;
+
+    font-weight: 900;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 900px) {
+
+    .nav-links {
+        display: none;
+    }
+
+    .hero-container {
+        grid-template-columns:
+            1fr;
+    }
+
+    .hero {
+        padding-top: 130px;
+    }
+
+    .hero-visual {
+        max-width: 700px;
+
+        margin: auto;
+    }
+
+    .why-layout {
+        grid-template-columns:
+            1fr;
+    }
+
+    .restore-workspace {
+        grid-template-columns:
+            1fr;
+    }
+
+    .restore-control {
+        flex-direction: row;
+    }
+
+    .control-line {
+        width: 60px;
+        height: 1px;
+    }
+
+    .result-panel {
+        grid-template-columns:
+            repeat(2, 1fr);
+    }
+
+    .restore-button {
+        width: 110px;
+        min-height: 55px;
+    }
+
+}
+
+
+@media (max-width: 650px) {
+
+    .section {
+        width:
+            calc(100% - 24px);
+
+        padding-top: 75px;
+        padding-bottom: 75px;
+    }
+
+    .nav-container {
+        width:
+            calc(100% - 24px);
+    }
+
+    .hero h1 {
+        font-size: 43px;
+    }
+
+    .problem-grid {
+        grid-template-columns:
+            1fr;
+    }
+
+    .small-feature-row {
+        grid-template-columns:
+            1fr;
+    }
+
+    .hero-stats {
+        flex-wrap: wrap;
+
+        gap: 18px;
+    }
+
+    .comparison {
+        height: 250px;
+    }
+
+    .form-row {
+        grid-template-columns:
+            1fr;
+    }
+
+    .footer-inner {
+        flex-direction: column;
+
+        align-items: flex-start;
+
+        gap: 10px;
+    }
+
+}/* =========================================================
+   TYPOGRAPHY ENHANCEMENT
+   Font sizes only — layout/design unchanged
+========================================================= */
+
+/* Navbar */
+.nav-links {
+    font-size: 13px;
+}
+
+.nav-button {
+    font-size: 12px;
+}
+
+/* Section headings */
+.section-title {
+    font-size: 16px;
+}
+
+/* Hero */
+.eyebrow {
+    font-size: 10px;
+}
+
+.hero-description {
+    font-size: 17px;
+}
+
+.stat strong {
+    font-size: 18px;
+}
+
+.stat span {
+    font-size: 10px;
+}
+
+.primary-button {
+    font-size: 13px;
+}
+
+/* Hero image technical labels */
+.frame-top,
+.frame-bottom {
+    font-size: 9px;
+}
+
+.image-label {
+    font-size: 9px;
+}
+
+/* Problem cards */
+.info-card h3 {
+    font-size: 16px;
+}
+
+.info-card p {
+    font-size: 13px;
+}
+
+/* Why SIV-AI */
+.feature-number {
+    font-size: 10px;
+}
+
+.structure-card h3 {
+    font-size: 22px;
+}
+
+.structure-card p {
+    font-size: 13px;
+}
+
+.structure-visual span {
+    font-size: 9px;
+}
+
+.feature-card h3 {
+    font-size: 15px;
+}
+
+.feature-card p {
+    font-size: 12px;
+}
+
+/* Restoration section */
+.model-status {
+    font-size: 10px;
+}
+
+.workspace-header,
+.workspace-footer {
+    font-size: 9px;
+}
+
+.upload-content strong {
+    font-size: 11px;
+}
+
+.upload-content span {
+    font-size: 10px;
+}
+
+.control-caption {
+    font-size: 8px;
+}
+
+.output-placeholder,
+#waitingText,
+#waitingText strong {
+    font-size: 10px;
+}
+
+.output-loader {
+    font-size: 10px;
+}
+
+.download-button {
+    font-size: 9px;
+}
+
+.result-panel span {
+    font-size: 9px;
+}
+
+.result-panel strong {
+    font-size: 17px;
+}
+
+/* FAQ */
+.faq-question {
+    font-size: 12px;
+}
+
+.faq-answer p {
+    font-size: 12px;
+}
+
+/* Feedback */
+#feedbackForm label {
+    font-size: 9px;
+}
+
+#feedbackForm input,
+#feedbackForm select,
+#feedbackForm textarea {
+    font-size: 11px;
+}
+
+.feedback-button {
+    font-size: 10px;
+}
+
+/* Contact */
+.contact-info h3 {
+    font-size: 14px;
+}
+
+.contact-info .role {
+    font-size: 9px;
+}
+
+.contact-info p {
+    font-size: 10px;
+}
+
+.email-button {
+    font-size: 9px;
+}
+
+/* Footer */
+.footer-inner {
+    font-size: 10px;
+}
+
+.footer-logo {
+    font-size: 20px;
+}/* =========================================================
+   SIV-AI — LIGHT / WHITE THEME
+   Background theme only
+========================================================= */
+
+:root {
+    --bg: #f5f7f8;
+    --bg-soft: #ffffff;
+
+    --panel: #ffffff;
+    --panel-dark: #f0f3f5;
+
+    --cyan: #009db5;
+    --cyan-dark: #007f92;
+
+    --text: #101820;
+    --dark-text: #101820;
+
+    --muted: #66757c;
+    --border: #d8e0e4;
+
+    --shadow:
+        0 20px 50px rgba(20, 40, 50, 0.10);
+}
+
+
+/* =========================================================
+   BODY
+========================================================= */
+
+body {
+    background:
+        radial-gradient(
+            circle at 80% 10%,
+            rgba(0, 157, 181, 0.08),
+            transparent 28%
+        ),
+        #f5f7f8;
+
+    color: #101820;
+    /* =========================================================
+   SIV-AI
+   LIGHT SCIENTIFIC / AI THEME
+========================================================= */
+
+:root {
+    --bg: #f5f8fa;
+    --bg-soft: #eef3f5;
+
+    --panel: #ffffff;
+    --panel-dark: #102027;
+
+    --cyan: #00a9bd;
+    --cyan-dark: #007f91;
+
+    --text: #14232b;
+    --dark-text: #14232b;
+
+    --muted: #5f7078;
+    --border: #d7e1e5;
+
+    --shadow:
+        0 15px 40px rgba(16, 32, 39, 0.10);
+
+    --max-width: 1180px;
+}
+
+
+/* =========================================================
+   GLOBAL
+========================================================= */
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    background:
+        radial-gradient(
+            circle at 80% 5%,
+            rgba(0, 169, 189, 0.08),
+            transparent 28%
+        ),
+        linear-gradient(
+            180deg,
+            #ffffff 0%,
+            #f5f8fa 45%,
+            #eef3f5 100%
+        );
+
+    color: var(--text);
+
+    font-family:
+        Inter,
+        "Segoe UI",
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size: 15px;
+    line-height: 1.6;
+
+    overflow-x: hidden;
+
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+
+/* =========================================================
+   NAVIGATION TYPOGRAPHY
+========================================================= */
+
+.logo {
+    font-size: 26px;
+    font-weight: 900;
+    letter-spacing: -1px;
+    color: #14232b;
+}
+
+.logo span {
+    color: var(--cyan-dark);
+}
+
+.nav-links {
+    display: flex;
+
+    gap: 30px;
+
+    font-size: 13px;
+
+    font-weight: 600;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.06em;
+
+    color: #53666f;
+}
+
+.nav-links a:hover {
+    color: var(--cyan-dark);
+}
+
+.nav-button {
+    border: 1px solid var(--cyan);
+
+    color: var(--cyan-dark);
+
+    padding: 10px 17px;
+
+    font-size: 12px;
+
+    font-weight: 700;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.06em;
+}
+
+
+/* =========================================================
+   NAVBAR LIGHT THEME
+========================================================= */
+
+.navbar {
+    background:
+        rgba(255, 255, 255, 0.92);
+
+    backdrop-filter: blur(16px);
+
+    border-bottom:
+        1px solid rgba(20, 35, 43, 0.08);
+
+    box-shadow:
+        0 4px 20px rgba(20, 35, 43, 0.04);
+}
+
+
+/* =========================================================
+   SECTION TITLES
+========================================================= */
+
+.section-title {
+    font-size: 15px;
+
+    font-weight: 800;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.09em;
+
+    color: #182a32;
+
+    margin-bottom: 28px;
+}
+
+.section-title span::before {
+    background: var(--cyan);
+}
+
+
+/* =========================================================
+   HERO
+========================================================= */
+
+.hero h1 {
+    font-size:
+        clamp(48px, 5vw, 72px);
+
+    line-height: 1.02;
+
+    letter-spacing: -0.055em;
+
+    font-weight: 900;
+
+    color: #102027;
+
+    margin-bottom: 28px;
+}
+
+.hero-description {
+    max-width: 510px;
+
+    color: #5d7079;
+
+    font-size: 16px;
+
+    line-height: 1.75;
+
+    margin-bottom: 32px;
+}
+
+.eyebrow {
+    display: inline-block;
+
+    background: #e5f8fb;
+
+    color: #007f91;
+
+    padding: 6px 11px;
+
+    font-size: 10px;
+
+    font-weight: 800;
+
+    letter-spacing: 0.14em;
+
+    margin-bottom: 22px;
+}
+
+
+/* =========================================================
+   HERO STATS
+========================================================= */
+
+.stat strong {
+    color: var(--cyan-dark);
+
+    font-size: 18px;
+
+    font-weight: 800;
+}
+
+.stat span {
+    color: #657780;
+
+    font-size: 10px;
+
+    font-weight: 600;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.09em;
+}
+
+
+/* =========================================================
+   BUTTONS
+========================================================= */
+
+.primary-button {
+    padding: 14px 20px;
+
+    background: var(--cyan);
+
+    color: #ffffff;
+
+    font-size: 12px;
+
+    font-weight: 800;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.05em;
+
+    box-shadow:
+        0 8px 25px rgba(0, 169, 189, 0.18);
+}
+
+.primary-button:hover {
+    box-shadow:
+        0 12px 30px rgba(0, 169, 189, 0.28);
+}
+
+
+/* =========================================================
+   PROBLEM SECTION
+========================================================= */
+
+.problem-section h2 {
+    font-size:
+        clamp(32px, 3vw, 44px);
+
+    line-height: 1.08;
+
+    letter-spacing: -0.04em;
+
+    font-weight: 850;
+
+    color: #102027;
+
+    margin-bottom: 40px;
+}
+
+.info-card h3 {
+    font-size: 16px;
+
+    font-weight: 750;
+
+    color: #172a32;
+
+    margin-bottom: 10px;
+}
+
+.info-card p {
+    color: #60727a;
+
+    font-size: 13px;
+
+    line-height: 1.7;
+}
+
+
+/* =========================================================
+   WHY SIV-AI
+========================================================= */
+
+.structure-card h3 {
+    font-size: 22px;
+
+    font-weight: 800;
+
+    color: #142830;
+
+    margin-bottom: 15px;
+}
+
+.structure-card p {
+    color: #61737b;
+
+    font-size: 13px;
+
+    line-height: 1.75;
+}
+
+.feature-card h3 {
+    font-size: 15px;
+
+    font-weight: 750;
+
+    color: #172a32;
+
+    margin-bottom: 8px;
+}
+
+.feature-card p {
+    color: #62747c;
+
+    font-size: 12px;
+
+    line-height: 1.7;
+}
+
+.feature-number {
+    color: var(--cyan-dark);
+
+    font-size: 10px;
+
+    font-weight: 700;
+
+    margin-bottom: 30px;
+}
+
+
+/* =========================================================
+   RESTORATION
+========================================================= */
+
+.model-status {
+    font-size: 10px;
+
+    color: #667981;
+
+    font-weight: 600;
+}
+
+.workspace-header,
+.workspace-footer {
+    color: #667981;
+
+    font-size: 9px;
+
+    font-weight: 600;
+}
+
+.upload-content strong {
+    font-size: 12px;
+
+    font-weight: 750;
+
+    color: #263940;
+}
+
+.upload-content span {
+    color: #71838a;
+
+    font-size: 10px;
+}
+
+.control-caption {
+    color: #63757d;
+
+    font-size: 8px;
+
+    font-weight: 600;
+}
+
+#waitingText {
+    font-size: 10px;
+
+    color: #697b83;
+}
+
+#waitingText strong {
+    font-size: 10px;
+
+    color: #344951;
+}
+
+
+/* =========================================================
+   RESULT METRICS
+========================================================= */
+
+.result-panel span {
+    color: #71828a;
+
+    font-size: 9px;
+
+    font-weight: 700;
+
+    letter-spacing: 0.05em;
+}
+
+.result-panel strong {
+    font-size: 19px;
+
+    font-weight: 800;
+
+    color: #142830;
+}
+
+
+/* =========================================================
+   FAQ
+========================================================= */
+
+.faq-question {
+    padding: 18px 20px;
+
+    color: #182a32;
+
+    font-size: 13px;
+
+    font-weight: 650;
+}
+
+.faq-answer p {
+    padding:
+        0 20px 20px;
+
+    color: #64767e;
+
+    font-size: 12px;
+
+    line-height: 1.7;
+}
+
+.plus {
+    color: #71838a;
+
+    font-size: 18px;
+}
+
+
+/* =========================================================
+   FEEDBACK
+========================================================= */
+
+#feedbackForm label {
+    color: #667880;
+
+    font-size: 9px;
+
+    font-weight: 700;
+
+    letter-spacing: .07em;
+}
+
+#feedbackForm input,
+#feedbackForm select,
+#feedbackForm textarea {
+    padding: 12px;
+
+    color: #182a32;
+
+    font-size: 12px;
+
+    border: 1px solid #d7e1e5;
+
+    background: #f9fbfc;
+}
+
+#feedbackForm input::placeholder,
+#feedbackForm textarea::placeholder {
+    color: #98a6ac;
+}
+
+.feedback-button {
+    padding: 14px;
+
+    font-size: 11px;
+
+    font-weight: 800;
+
+    letter-spacing: .06em;
+}
+
+
+/* =========================================================
+   CONTACT
+========================================================= */
+
+.contact-info h3 {
+    font-size: 14px;
+
+    font-weight: 800;
+}
+
+.contact-info .role {
+    color: #71828a;
+
+    font-size: 9px;
+
+    font-weight: 600;
+}
+
+.contact-info p {
+    color: #63757d;
+
+    font-size: 10px;
+
+    line-height: 1.6;
+}
+
+.email-button {
+    font-size: 9px;
+
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   FOOTER
+========================================================= */
+
+footer {
+    background: #edf2f4;
+
+    border-top:
+        1px solid #d9e2e6;
+}
+
+.footer-inner {
+    color: #697b83;
+
+    font-size: 10px;
+}
+
+.footer-logo {
+    color: #142830;
+
+    font-size: 20px;
+
+    font-weight: 900;
+
+}
+}
+
+/* =========================================================
+   NAVBAR
+========================================================= */
+
+.navbar {
+    background:
+        rgba(255, 255, 255, 0.92);
+
+    border-bottom:
+        1px solid #dfe6e9;
+}
+
+.logo {
+    color: #101820;
+}
+
+.nav-links {
+    color: #66757c;
+}
+
+.nav-links a:hover {
+    color: #009db5;
+}
+
+.nav-button {
+    color: #008ca3;
+    border-color: #009db5;
+}
+
+.nav-button:hover {
+    background: #009db5;
+    color: white;
+}
+
+
+/* =========================================================
+   HERO
+========================================================= */
+
+.hero-description {
+    color: #65757c;
+}
+
+.stat {
+    border-left-color: #009db5;
+}
+
+.stat strong {
+    color: #008ca3;
+}
+
+.stat span {
+    color: #718188;
+}
+
+
+/* =========================================================
+   HERO VISUAL
+========================================================= */
+
+.image-frame {
+    background: #ffffff;
+
+    border-color: #009db5;
+
+    box-shadow:
+        0 0 40px rgba(0, 157, 181, 0.12);
+}
+
+.image-frame::before,
+.image-frame::after {
+    border-color: #009db5;
+}
+
+.frame-top,
+.frame-bottom {
+    color: #6d7c82;
+}
+
+.comparison-divider {
+    background: #009db5;
+    color: white;
+}
+
+.image-label {
+    background:
+        rgba(16, 24, 32, 0.75);
+
+    color: white;
+}
+
+
+/* =========================================================
+   SECTION TITLES
+========================================================= */
+
+.section-title {
+    color: #101820;
+}
+
+.section-title span::before {
+    background: #009db5;
+}
+
+
+/* =========================================================
+   PROBLEM SECTION
+========================================================= */
+
+.problem-section h2 {
+    color: #101820;
+}
+
+.info-card {
+    background: #ffffff;
+    color: #101820;
+
+    box-shadow:
+        0 15px 40px rgba(20, 40, 50, 0.08);
+}
+
+.card-icon {
+    background: #eef3f5;
+    color: #617178;
+}
+
+.card-icon.warning {
+    color: #e74c55;
+}
+
+.info-card p {
+    color: #66757c;
+}
+
+
+/* =========================================================
+   WHY SIV-AI
+========================================================= */
+
+.structure-card,
+.feature-card {
+    background: #ffffff;
+    color: #101820;
+}
+
+.feature-number {
+    color: #008ca3;
+}
+
+.structure-card p {
+    color: #68777d;
+}
+
+.structure-visual {
+    background:
+        linear-gradient(
+            rgba(0, 157, 181, .08) 1px,
+            transparent 1px
+        ),
+        linear-gradient(
+            90deg,
+            rgba(0, 157, 181, .08) 1px,
+            transparent 1px
+        );
+}
+
+.structure-visual span {
+    color: #008ca3;
+    background: #ffffff;
+}
+
+.feature-icon {
+    background: #eef3f5;
+    color: #68777d;
+}
+
+.feature-card p {
+    color: #69777d;
+}
+
+
+/* =========================================================
+   RESTORATION
+========================================================= */
+
+.restore-header {
+    border-bottom-color: #d8e0e4;
+}
+
+.model-status {
+    color: #65757c;
+}
+
+.workspace-panel {
+    background: #ffffff;
+    color: #101820;
+
+    box-shadow:
+        0 10px 30px rgba(20, 40, 50, 0.06);
+}
+
+.workspace-header,
+.workspace-footer {
+    color: #718087;
+}
+
+.upload-area,
+.output-area {
+    background: #eef2f4;
+    border-color: #d7e0e4;
+}
+
+.upload-area.dragging {
+    border-color: #009db5;
+}
+
+.upload-content {
+    background:
+        rgba(255, 255, 255, .92);
+}
+
+.upload-icon {
+    background: #edf2f4;
+    color: #708087;
+}
+
+.upload-content span {
+    color: #718087;
+}
+
+.preview-image {
+    background: #eef2f4;
+}
+
+.control-line {
+    background: #cbd6da;
+}
+
+.restore-button {
+    background: #009db5;
+    color: white;
+}
+
+.restore-button:hover {
+    box-shadow:
+        0 0 25px rgba(0, 157, 181, .25);
+}
+
+.control-caption {
+    color: #6e7d83;
+}
+
+.output-placeholder {
+    color: #7d8b91;
+}
+
+.spinner {
+    border-color: #cbd5d9;
+    border-top-color: #009db5;
+}
+
+.download-button {
+    color: #607178;
+}
+
+.result-panel {
+    background: #ffffff;
+    color: #101820;
+
+    box-shadow:
+        0 10px 30px rgba(20, 40, 50, 0.06);
+}
+
+.result-panel div {
+    border-right-color: #e1e7e9;
+}
+
+.result-panel span {
+    color: #718087;
+}
+
+
+/* =========================================================
+   FAQ
+========================================================= */
+
+.faq-container {
+    background: #ffffff;
+    color: #101820;
+
+    box-shadow:
+        0 15px 40px rgba(20, 40, 50, 0.07);
+}
+
+.faq-item {
+    border-bottom-color: #e1e7e9;
+}
+
+.faq-question {
+    color: #142027;
+}
+
+.plus {
+    color: #718087;
+}
+
+.faq-item.active .plus {
+    color: #008ca3;
+}
+
+.faq-answer p {
+    color: #68777d;
+}
+
+
+/* =========================================================
+   FEEDBACK
+========================================================= */
+
+#feedbackForm {
+    background: #ffffff;
+    color: #101820;
+}
+
+#feedbackForm label {
+    color: #718087;
+}
+
+#feedbackForm input,
+#feedbackForm select,
+#feedbackForm textarea {
+    border-color: #dce4e7;
+    background: #f7f9fa;
+    color: #18242a;
+}
+
+#feedbackForm input:focus,
+#feedbackForm select:focus,
+#feedbackForm textarea:focus {
+    border-color: #009db5;
+}
+
+.rating button {
+    border-color: #dce4e7;
+    background: #ffffff;
+    color: #526168;
+}
+
+.rating button.selected {
+    background: #009db5;
+    border-color: #009db5;
+    color: white;
+}
+
+.feedback-button {
+    background: #009db5;
+    color: white;
+}
+
+
+/* =========================================================
+   CONTACT
+========================================================= */
+
+.contact-card {
+    background: #ffffff;
+    color: #101820;
+
+    box-shadow:
+        0 15px 40px rgba(20, 40, 50, 0.08);
+}
+
+.contact-avatar {
+    background: #edf2f4;
+    color: #718087;
+}
+
+.contact-info .role,
+.contact-info p {
+    color: #68777d;
+}
+
+.email-button {
+    background: #101820;
+    color: white;
+}
+
+
+/* =========================================================
+   FOOTER
+========================================================= */
+
+footer {
+    border-top-color: #dce3e6;
+}
+
+.footer-inner {
+    color: #68777d;
+}
+
+.footer-logo {
+    color: #101820;
+}/* =========================================================
+   SIV-AI — NEUMORPHIC LIGHT THEME
+   Add this at the END of style.css
+========================================================= */
+
+
+/* =========================================================
+   GLOBAL THEME
+========================================================= */
+
+:root {
+    --neo-bg: #e9eef1;
+    --neo-surface: #e9eef1;
+
+    --neo-dark-shadow:
+        10px 10px 22px rgba(163, 177, 190, 0.55);
+
+    --neo-light-shadow:
+        -10px -10px 22px rgba(255, 255, 255, 0.95);
+
+    --neo-small-shadow:
+        5px 5px 12px rgba(163, 177, 190, 0.45),
+        -5px -5px 12px rgba(255, 255, 255, 0.9);
+
+    --neo-inset:
+        inset 5px 5px 12px rgba(163, 177, 190, 0.4),
+        inset -5px -5px 12px rgba(255, 255, 255, 0.9);
+
+    --neo-cyan: #00a8bd;
+    --neo-cyan-light: #08c4dc;
+
+    --neo-text: #172831;
+    --neo-muted: #65777f;
+}
+
+
+/* =========================================================
+   BODY
+========================================================= */
+
+body {
+    background:
+        linear-gradient(
+            145deg,
+            #f1f5f7,
+            #e4eaed
+        );
+
+    color: var(--neo-text);
+}
+
+
+/* =========================================================
+   NAVBAR
+========================================================= */
+
+.navbar {
+    background: rgba(233, 238, 241, 0.94);
+
+    border-bottom: none;
+
+    box-shadow:
+        0 6px 18px rgba(163, 177, 190, 0.28),
+        0 -3px 10px rgba(255, 255, 255, 0.7);
+}
+
+.nav-container {
+    height: 76px;
+}
+
+.logo {
+    color: #172831;
+
+    text-shadow:
+        1px 1px 2px rgba(255,255,255,.8);
+}
+
+.logo span {
+    color: var(--neo-cyan);
+}
+
+.nav-links {
+    color: #53666e;
+}
+
+.nav-links a {
+    transition:
+        color .2s ease,
+        transform .2s ease;
+}
+
+.nav-links a:hover {
+    color: var(--neo-cyan);
+}
+
+.nav-button {
+    border: none;
+
+    background: var(--neo-bg);
+
+    color: var(--neo-cyan);
+
+    border-radius: 10px;
+
+    box-shadow:
+        var(--neo-small-shadow);
+
+    transition:
+        box-shadow .2s ease,
+        transform .2s ease;
+}
+
+.nav-button:hover {
+    background: var(--neo-bg);
+
+    color: var(--neo-cyan);
+
+    box-shadow:
+        var(--neo-inset);
+
+    transform: translateY(1px);
+}
+
+
+/* =========================================================
+   SECTION TITLES
+========================================================= */
+
+.section-title {
+    color: var(--neo-text);
+
+    font-weight: 850;
+
+    text-shadow:
+        1px 1px 2px rgba(255,255,255,.8);
+}
+
+.section-title span::before {
+    background: var(--neo-cyan);
+
+    box-shadow:
+        0 0 8px rgba(0,168,189,.35);
+}
+
+
+/* =========================================================
+   HERO
+========================================================= */
+
+.hero h1 {
+    color: #152730;
+
+    text-shadow:
+        1px 2px 2px rgba(255,255,255,.85);
+}
+
+.hero-description {
+    color: var(--neo-muted);
+}
+
+.eyebrow {
+    background: var(--neo-bg);
+
+    color: var(--neo-cyan);
+
+    border-radius: 8px;
+
+    box-shadow:
+        var(--neo-small-shadow);
+}
+
+
+/* =========================================================
+   HERO STATS
+========================================================= */
+
+.stat {
+    border-left:
+        2px solid var(--neo-cyan);
+}
+
+.stat strong {
+    color: var(--neo-cyan);
+
+    text-shadow:
+        0 1px 1px rgba(255,255,255,.8);
+}
+
+
+/* =========================================================
+   PRIMARY BUTTON
+========================================================= */
+
+.primary-button {
+    background: var(--neo-cyan);
+
+    color: #ffffff;
+
+    border: none;
+
+    border-radius: 10px;
+
+    box-shadow:
+        6px 6px 14px rgba(0, 130, 148, 0.28),
+        -4px -4px 10px rgba(255,255,255,.8);
+
+    transition:
+        transform .2s ease,
+        box-shadow .2s ease;
+}
+
+.primary-button:hover {
+    background: var(--neo-cyan-light);
+
+    transform:
+        translateY(-2px);
+
+    box-shadow:
+        8px 10px 20px rgba(0,130,148,.3),
+        -5px -5px 12px rgba(255,255,255,.9);
+}
+
+.primary-button:active {
+    transform: translateY(1px);
+
+    box-shadow:
+        var(--neo-inset);
+}
+
+
+/* =========================================================
+   HERO IMAGE FRAME
+========================================================= */
+
+.image-frame {
+    background: var(--neo-bg);
+
+    border: none;
+
+    border-radius: 18px;
+
+    padding: 14px;
+
+    box-shadow:
+        var(--neo-dark-shadow),
+        var(--neo-light-shadow);
+}
+
+.image-frame::before,
+.image-frame::after {
+    border-color: var(--neo-cyan);
+}
+
+
+/* =========================================================
+   PROBLEM CARDS
+========================================================= */
+
+.info-card {
+    background: var(--neo-surface);
+
+    color: var(--neo-text);
+
+    border: none;
+
+    border-radius: 18px;
+
+    box-shadow:
+        var(--neo-dark-shadow),
+        var(--neo-light-shadow);
+
+    transition:
+        transform .25s ease,
+        box-shadow .25s ease;
+}
+
+.info-card:hover {
+    transform:
+        translateY(-4px);
+
+    box-shadow:
+        14px 14px 28px rgba(163,177,190,.55),
+        -12px -12px 25px rgba(255,255,255,.95);
+}
+
+.card-icon {
+    background: var(--neo-bg);
+
+    border-radius: 10px;
+
+    box-shadow:
+        var(--neo-small-shadow);
+}
+
+.info-card h3 {
+    color: var(--neo-text);
+}
+
+.info-card p {
+    color: var(--neo-muted);
+}
+
+
+/* =========================================================
+   WHY SIV-AI
+========================================================= */
+
+.structure-card,
+.feature-card {
+    background: var(--neo-surface);
+
+    color: var(--neo-text);
+
+    border: none;
+
+    border-radius: 18px;
+
+    box-shadow:
+        var(--neo-dark-shadow),
+        var(--neo-light-shadow);
+
+    transition:
+        transform .25s ease,
+        box-shadow .25s ease;
+}
+
+.structure-card:hover,
+.feature-card:hover {
+    transform:
+        translateY(-3px);
+
+    box-shadow:
+        13px 13px 26px rgba(163,177,190,.55),
+        -12px -12px 25px rgba(255,255,255,.95);
+}
+
+.structure-card h3,
+.feature-card h3 {
+    color: var(--neo-text);
+}
+
+.structure-card p,
+.feature-card p {
+    color: var(--neo-muted);
+}
+
+.feature-number {
+    color: var(--neo-cyan);
+
+    font-weight: 800;
+}
+
+.feature-icon {
+    background: var(--neo-bg);
+
+    color: var(--neo-cyan);
+
+    border-radius: 9px;
+
+    box-shadow:
+        var(--neo-small-shadow);
+}
+
+
+/* =========================================================
+   STRUCTURE VISUAL
+========================================================= */
+
+.structure-visual {
+    background:
+        linear-gradient(
+            rgba(0,168,189,.07) 1px,
+            transparent 1px
+        ),
+        linear-gradient(
+            90deg,
+            rgba(0,168,189,.07) 1px,
+            transparent 1px
+        );
+
+    border-radius: 12px;
+
+    box-shadow:
+        var(--neo-inset);
+}
+
+.structure-visual span {
+    background: var(--neo-bg);
+
+    color: var(--neo-cyan);
+
+    border-radius: 6px;
+
+    box-shadow:
+        var(--neo-small-shadow);
+}
+
+
+/* =========================================================
+   RESTORATION WORKSPACE
+========================================================= */
+
+.workspace-panel {
+    background: var(--neo-bg);
+
+    border-radius: 18px;
+
+    padding: 10px;
+
+    box-shadow:
+        var(--neo-dark-shadow),
+        var(--neo-light-shadow);
+}
+
+.upload-area,
+.output-area {
+    background: var(--neo-bg);
+
+    border: none;
+
+    border-radius: 12px;
+
+    box-shadow:
+        var(--neo-inset);
+}
+
+.upload-area.dragging {
+    border: 2px solid var(--neo-cyan);
+
+    box-shadow:
+        inset 4px 4px 10px rgba(163,177,190,.35),
+        inset -4px -4px 10px rgba(255,255,255,.8),
+        0 0 15px rgba(0,168,189,.18);
+}
+
+.upload-content {
+    background: var(--neo-bg);
+
+    border-radius: 12px;
+
+    box-shadow:
+        var(--neo-small-shadow);
+}
+
+.upload-icon {
+    background: var(--neo-bg);
+
+    border-radius: 10px;
+
+    box-shadow:
+        var(--neo-small-shadow);
+
+    color: var(--neo-cyan);
+}
+
+
+/* =========================================================
+   RESTORE BUTTON
+========================================================= */
+
+.restore-button {
+    background: var(--neo-cyan);
+
+    color: white;
+
+    border-radius: 16px;
+
+    box-shadow:
+        7px 7px 15px rgba(0,130,148,.28),
+        -5px -5px 12px rgba(255,255,255,.85);
+
+    transition:
+        transform .2s ease,
+        box-shadow .2s ease;
+}
+
+.restore-button:hover {
+    background: var(--neo-cyan-light);
+
+    transform:
+        scale(1.04);
+
+    box-shadow:
+        10px 10px 22px rgba(0,130,148,.3),
+        -6px -6px 14px rgba(255,255,255,.9);
+}
+
+.restore-button:active {
+    transform: scale(.98);
+
+    box-shadow:
+        var(--neo-inset);
+}
+
+.control-line {
+    background: #c8d2d7;
+}
+
+
+/* =========================================================
+   RESULT METRICS
+========================================================= */
+
+.result-panel {
+    background: var(--neo-bg);
+
+    border-radius: 16px;
+
+    box-shadow:
+        var(--neo-dark-shadow),
+        var(--neo-light-shadow);
+
+    overflow: hidden;
+}
+
+.result-panel div {
+    border-right:
+        1px solid rgba(190,202,208,.45);
+}
+
+.result-panel span {
+    color: #71838b;
+}
+
+.result-panel strong {
+    color: var(--neo-text);
+
+    font-size: 20px;
+}
+
+
+/* =========================================================
+   FAQ
+========================================================= */
+
+.faq-container {
+    background: var(--neo-bg);
+
+    color: var(--neo-text);
+
+    border-radius: 18px;
+
+    padding: 8px;
+
+    box-shadow:
+        var(--neo-dark-shadow),
+        var(--neo-light-shadow);
+}
+
+.faq-item {
+    border-bottom:
+        1px solid rgba(190,202,208,.5);
+}
+
+.faq-question {
+    color: var(--neo-text);
+
+    border-radius: 10px;
+}
+
+.faq-question:hover {
+    background: rgba(255,255,255,.25);
+}
+
+.plus {
+    color: var(--neo-cyan);
+}
+
+
+/* =========================================================
+   FEEDBACK FORM
+========================================================= */
+
+#feedbackForm {
+    background: var(--neo-bg);
+
+    color: var(--neo-text);
+
+    border-radius: 18px;
+
+    box-shadow:
+        var(--neo-dark-shadow),
+        var(--neo-light-shadow);
+}
+
+#feedbackForm input,
+#feedbackForm select,
+#feedbackForm textarea {
+    background: var(--neo-bg);
+
+    border: none;
+
+    border-radius: 10px;
+
+    box-shadow:
+        var(--neo-inset);
+
+    color: var(--neo-text);
+}
+
+#feedbackForm input:focus,
+#feedbackForm select:focus,
+#feedbackForm textarea:focus {
+    border: none;
+
+    box-shadow:
+        inset 4px 4px 9px rgba(163,177,190,.4),
+        inset -4px -4px 9px rgba(255,255,255,.9),
+        0 0 0 2px rgba(0,168,189,.18);
+}
+
+.rating button {
+    background: var(--neo-bg);
+
+    border: none;
+
+    border-radius: 8px;
+
+    box-shadow:
+        var(--neo-small-shadow);
+}
+
+.rating button:hover {
+    color: var(--neo-cyan);
+}
+
+.rating button.selected {
+    background: var(--neo-cyan);
+
+    border: none;
+
+    color: white;
+
+    box-shadow:
+        var(--neo-inset);
+}
+
+.feedback-button {
+    background: var(--neo-cyan);
+
+    color: white;
+
+    border-radius: 10px;
+
+    box-shadow:
+        6px 6px 14px rgba(0,130,148,.25),
+        -4px -4px 10px rgba(255,255,255,.8);
+}
+
+.feedback-button:hover {
+    background: var(--neo-cyan-light);
+}
+
+
+/* =========================================================
+   CONTACT
+========================================================= */
+
+.contact-card {
+    background: var(--neo-bg);
+
+    color: var(--neo-text);
+
+    border-radius: 16px;
+
+    box-shadow:
+        var(--neo-dark-shadow),
+        var(--neo-light-shadow);
+}
+
+.contact-avatar {
+    background: var(--neo-bg);
+
+    border-radius: 12px;
+
+    color: var(--neo-cyan);
+
+    box-shadow:
+        var(--neo-small-shadow);
+}
+
+.email-button {
+    background: var(--neo-bg);
+
+    color: var(--neo-cyan);
+
+    border-radius: 8px;
+
+    box-shadow:
+        var(--neo-small-shadow);
+
+    transition:
+        box-shadow .2s ease;
+}
+
+.email-button:hover {
+    box-shadow:
+        var(--neo-inset);
+}
+
+
+/* =========================================================
+   FOOTER
+========================================================= */
+
+footer {
+    background: #e4eaed;
+
+    border-top:
+        1px solid rgba(190,202,208,.5);
+}
+
+.footer-logo {
+    color: var(--neo-text);
+}
+
+
+/* =========================================================
+   SCROLLBAR
+========================================================= */
+
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #e4eaed;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #bdc9ce;
+
+    border-radius: 10px;
+
+    box-shadow:
+        inset 2px 2px 4px rgba(255,255,255,.7);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--neo-cyan);
+}

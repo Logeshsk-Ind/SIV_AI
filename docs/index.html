@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="description"
+        content="SIV-AI — AI-powered semiconductor SEM image restoration and structural preservation."
+    >
+
+    <title>SIV-AI | Semiconductor Inspection & Verification AI</title>
+
+    <link
+        rel="stylesheet"
+        href="/static/style.css"
+    >
+</head>
+
+<body>
+
+<!-- =========================================================
+     NAVBAR
+========================================================= -->
+
+<header class="navbar">
+
+    <div class="nav-container">
+
+        <a href="#home" class="logo">
+            SIV<span>-AI</span>
+        </a>
+
+        <nav class="nav-links">
+            <a href="#problem">Problem</a>
+            <a href="#why">Why SIV-AI</a>
+            <a href="#restore">Restore</a>
+            <a href="#faq">FAQ</a>
+            <a href="#contact">Contact</a>
+        </nav>
+
+        <a
+            href="#restore"
+            class="nav-button"
+        >
+            Try Demo
+        </a>
+
+    </div>
+
+</header>
+
+
+<!-- =========================================================
+     HERO
+========================================================= -->
+
+<section
+    id="home"
+    class="hero section"
+>
+
+    <div class="hero-container">
+
+        <div class="hero-content">
+
+            <div class="eyebrow">
+                ✦ AI-POWERED SEM IMAGE RESTORATION
+            </div>
+
+            <h1>
+                Restore the detail.<br>
+                Preserve the structure.
+            </h1>
+
+            <p class="hero-description">
+                SIV-AI reconstructs degraded SEM imagery while preserving
+                critical semiconductor structures and fine-grained
+                metrology details.
+            </p>
+
+            <div class="hero-stats">
+
+                <div class="stat">
+                    <strong>2×</strong>
+                    <span>Super Resolution</span>
+                </div>
+
+                <div class="stat">
+                    <strong>27.91 dB</strong>
+                    <span>PSNR</span>
+                </div>
+
+                <div class="stat">
+                    <strong>0.7530</strong>
+                    <span>SSIM</span>
+                </div>
+
+            </div>
+
+            <a
+                href="#restore"
+                class="primary-button"
+            >
+                <span>▶</span>
+                Try Demo
+            </a>
+
+        </div>
+
+
+        <!-- HERO IMAGE -->
+
+        <div class="hero-visual">
+
+            <div class="image-frame">
+
+                <div class="frame-top">
+                    <span>DEGRADED INPUT</span>
+                    <span>SIV-AI RESTORED</span>
+                </div>
+
+                <div class="comparison">
+
+                    <div class="comparison-image degraded">
+                        <div class="fake-sem sem-left"></div>
+
+                        <span class="image-label">
+                            INPUT
+                        </span>
+                    </div>
+
+                    <div class="comparison-divider">
+                        <span>↔</span>
+                    </div>
+
+                    <div class="comparison-image restored">
+                        <div class="fake-sem sem-right"></div>
+
+                        <span class="image-label">
+                            RESTORED
+                        </span>
+                    </div>
+
+                </div>
+
+                <div class="frame-bottom">
+                    128 × 128 INPUT
+                    <span>→</span>
+                    256 × 256 OUTPUT
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =========================================================
+     PROBLEM SECTION
+========================================================= -->
+
+<section
+    id="problem"
+    class="section problem-section"
+>
+
+    <div class="section-heading centered">
+
+        <h2>
+            SEM images contain the evidence.<br>
+            Degradation can hide it.
+        </h2>
+
+    </div>
+
+
+    <div class="problem-grid">
+
+        <article class="info-card">
+
+            <div class="card-icon noise-icon">
+                ▦
+            </div>
+
+            <h3>
+                Noise & Artifacts
+            </h3>
+
+            <p>
+                High-speed scanning or low-dose imaging introduces
+                significant sensor noise, obscuring microscopic
+                defects.
+            </p>
+
+        </article>
+
+
+        <article class="info-card">
+
+            <div class="card-icon">
+                ◈
+            </div>
+
+            <h3>
+                Resolution Loss
+            </h3>
+
+            <p>
+                Sub-optimal imaging conditions result in blurred edges,
+                making precise metrology difficult.
+            </p>
+
+        </article>
+
+
+        <article class="info-card">
+
+            <div class="card-icon warning">
+                △
+            </div>
+
+            <h3>
+                Restoration Risk
+            </h3>
+
+            <p>
+                Standard upscaling algorithms hallucinate features,
+                creating false positives during QA inspection.
+            </p>
+
+        </article>
+
+    </div>
+
+</section>
+
+
+<!-- =========================================================
+     WHY SIV-AI
+========================================================= -->
+
+<!-- =========================================================
+     WHY SIV-AI
+========================================================= -->
+
+<section class="section" id="why">
+
+    <div class="section-title">
+        <span>WHY SIV-AI</span>
+    </div>
+
+    <div class="why-layout">
+
+        <!-- =================================================
+             MAIN FEATURE
+        ================================================== -->
+
+        <div class="structure-card">
+
+            <div class="feature-number">
+                01
+            </div>
+
+            <h3>
+                Wavelet-Guided Architecture
+            </h3>
+
+            <p>
+                A 2D Discrete Wavelet Transform decomposes the
+                degraded image into LL, LH, HL, and HH
+                sub-bands. SIV-AI restores low- and
+                high-frequency information through dedicated
+                neural pathways before inverse-wavelet
+                reconstruction.
+            </p>
+
+            <div class="structure-visual">
+                <span>
+                    SUB-BAND FEATURE SEPARATION
+                </span>
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             FEATURE COLUMN
+        ================================================== -->
+
+        <div class="feature-column">
+
+            <!-- TOP FEATURE -->
+
+            <div class="feature-card large">
+
+                <div class="feature-icon">
+                    02
+                </div>
+
+                <div>
+
+                    <h3>
+                        2× Resolution Recovery
+                    </h3>
+
+                    <p>
+                        Converts 128×128 low-resolution sensor
+                        inputs into 256×256 restored images
+                        while recovering fine structural
+                        information without introducing
+                        artificial features.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- BOTTOM FEATURES -->
+
+            <div class="small-feature-row">
+
+                <!-- GPU -->
+
+                <div class="feature-card">
+
+                    <div class="feature-icon">
+                        03
+                    </div>
+
+                    <div>
+
+                        <h3>
+                            GPU-Accelerated
+                        </h3>
+
+                        <p>
+                            PyTorch-based inference is optimized
+                            for NVIDIA GPU execution, enabling
+                            low-latency restoration suitable
+                            for inspection-line workflows.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <!-- EDGE -->
+
+                <div class="feature-card">
+
+                    <div class="feature-icon">
+                        04
+                    </div>
+
+                    <div>
+
+                        <h3>
+                            Edge-Preserving
+                        </h3>
+
+                        <p>
+                            A structure-aware restoration
+                            objective preserves sharp boundaries,
+                            line patterns, and high-frequency
+                            details critical to semiconductor
+                            image analysis.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =========================================================
+     RESTORATION DEMO
+========================================================= -->
+
+<section
+    id="restore"
+    class="section restore-section"
+>
+
+    <div class="restore-header">
+
+        <div>
+
+            <div class="section-title">
+                <span>Interactive Restoration</span>
+            </div>
+
+        </div>
+
+        <div class="model-status">
+
+            <span class="status-dot"></span>
+
+            <strong>Model Ready</strong>
+
+            <span>
+                SIV-AI PHASE-4
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <div class="restore-workspace">
+
+        <!-- INPUT -->
+
+        <div class="workspace-panel">
+
+            <div class="workspace-header">
+
+                <span>
+                    INPUT_VIEWPORT
+                </span>
+
+                <span>
+                    128×128
+                </span>
+
+            </div>
+
+            <div
+                class="upload-area"
+                id="uploadArea"
+            >
+
+                <input
+                    type="file"
+                    id="imageInput"
+                    accept=".png,.jpg,.jpeg,.bmp,.tif,.tiff,.webp,.npy"
+                    hidden
+                >
+
+                <div
+                    class="upload-content"
+                    id="uploadContent"
+                >
+
+                    <div class="upload-icon">
+                        ↑
+                    </div>
+
+                    <strong>
+                        Click to upload raw SEM image
+                    </strong>
+
+                    <span>
+                        or drag and drop
+                    </span>
+
+                </div>
+
+                <img
+                    id="inputPreview"
+                    class="preview-image hidden"
+                    alt="Input SEM preview"
+                >
+
+            </div>
+
+            <div class="workspace-footer">
+
+                <span id="inputFileName">
+                    NO FILE SELECTED
+                </span>
+
+                <span>
+                    SEM INPUT
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- CENTER CONTROL -->
+
+        <div class="restore-control">
+
+            <div class="control-line"></div>
+
+            <button
+                id="restoreButton"
+                class="restore-button"
+            >
+                <span class="button-icon">
+                    ⚡
+                </span>
+
+                RESTORE IMAGE
+
+            </button>
+
+            <div class="control-line"></div>
+
+            <span class="control-caption">
+                AI INFERENCE
+            </span>
+
+        </div>
+
+
+        <!-- OUTPUT -->
+
+        <div class="workspace-panel">
+
+            <div class="workspace-header">
+
+                <span>
+                    OUTPUT_VIEWPORT
+                </span>
+
+                <span>
+                    256×256
+                </span>
+
+            </div>
+
+            <div class="output-area">
+
+                <div
+                    class="output-placeholder"
+                    id="outputPlaceholder"
+                >
+
+                    <div class="output-loader hidden" id="loader">
+                        <div class="spinner"></div>
+
+                        <span>
+                            RESTORING...
+                        </span>
+                    </div>
+
+                    <div id="waitingText">
+
+                        <strong>
+                            AWAITING INPUT
+                        </strong>
+
+                        <span>
+                            ↑_SEM_READY_TO_BE
+                        </span>
+
+                    </div>
+
+                </div>
+
+                <img
+                    id="outputPreview"
+                    class="preview-image hidden"
+                    alt="Restored SEM image"
+                >
+
+            </div>
+
+            <div class="workspace-footer">
+
+                <button
+                    id="downloadButton"
+                    class="download-button"
+                    disabled
+                >
+                    ↓ EXPORT
+                </button>
+
+                <span>
+                    AI RESTORED
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- RESULT METRICS -->
+
+    <div
+        id="resultPanel"
+        class="result-panel hidden"
+    >
+
+        <div>
+            <span>PSNR</span>
+            <strong id="psnrValue">--</strong>
+        </div>
+
+        <div>
+            <span>SSIM</span>
+            <strong id="ssimValue">--</strong>
+        </div>
+
+        <div>
+            <span>PROCESSING</span>
+            <strong id="runtimeValue">--</strong>
+        </div>
+
+        <div>
+            <span>OUTPUT</span>
+            <strong>256×256</strong>
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =========================================================
+     FAQ
+========================================================= -->
+
+<section
+    id="faq"
+    class="section faq-section"
+>
+
+    <div class="section-title">
+        <span>Frequently Asked Questions</span>
+    </div>
+
+
+    <div class="faq-container">
+
+        <div class="faq-item">
+
+            <button class="faq-question">
+                <span>
+                    What is the main purpose of SIV-AI?
+                </span>
+
+                <span class="plus">+</span>
+            </button>
+
+            <div class="faq-answer">
+                <p>
+                    SIV-AI restores degraded semiconductor SEM images
+                    while preserving important structural and
+                    metrology information.
+                </p>
+            </div>
+
+        </div>
+
+
+        <div class="faq-item">
+
+            <button class="faq-question">
+
+                <span>
+                    How does the Residual SR model work?
+                </span>
+
+                <span class="plus">+</span>
+
+            </button>
+
+            <div class="faq-answer">
+
+                <p>
+                    The model learns a residual mapping between degraded
+                    low-resolution SEM imagery and high-resolution
+                    structural information.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="faq-item">
+
+            <button class="faq-question">
+
+                <span>
+                    What is the upscaling factor?
+                </span>
+
+                <span class="plus">+</span>
+
+            </button>
+
+            <div class="faq-answer">
+
+                <p>
+                    SIV-AI performs 2× spatial super-resolution,
+                    transforming 128×128 input imagery into
+                    256×256 restored output.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="faq-item">
+
+            <button class="faq-question">
+
+                <span>
+                    Can I upload my own SEM images?
+                </span>
+
+                <span class="plus">+</span>
+
+            </button>
+
+            <div class="faq-answer">
+
+                <p>
+                    Yes. PNG, JPG, JPEG, BMP, TIFF, WEBP and compatible
+                    raw SEM arrays can be submitted through the demo.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="faq-item">
+
+            <button class="faq-question">
+
+                <span>
+                    What are the PSNR metrics for the model?
+                </span>
+
+                <span class="plus">+</span>
+
+            </button>
+
+            <div class="faq-answer">
+
+                <p>
+                    The official SIV-AI Phase-4 demonstration model
+                    achieves approximately 27.91 dB PSNR and
+                    0.7530 SSIM on the project's evaluation setup.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="faq-item">
+
+            <button class="faq-question">
+
+                <span>
+                    What is the Structural Similarity Index (SSIM)?
+                </span>
+
+                <span class="plus">+</span>
+
+            </button>
+
+            <div class="faq-answer">
+
+                <p>
+                    SSIM measures structural similarity between a
+                    restored image and a reference image.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="faq-item">
+
+            <button class="faq-question">
+
+                <span>
+                    Is inference done locally or in the cloud?
+                </span>
+
+                <span class="plus">+</span>
+
+            </button>
+
+            <div class="faq-answer">
+
+                <p>
+                    The SIV-AI demo backend can run locally using
+                    FastAPI and PyTorch, allowing GPU-accelerated
+                    inference without sending inspection data to
+                    an external service.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="faq-item">
+
+            <button class="faq-question">
+
+                <span>
+                    How fast is the restoration process?
+                </span>
+
+                <span class="plus">+</span>
+
+            </button>
+
+            <div class="faq-answer">
+
+                <p>
+                    Runtime depends on the input, model implementation,
+                    and available GPU hardware. The demo reports the
+                    actual inference time after processing.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="faq-item">
+
+            <button class="faq-question">
+
+                <span>
+                    Does it work on biological samples?
+                </span>
+
+                <span class="plus">+</span>
+
+            </button>
+
+            <div class="faq-answer">
+
+                <p>
+                    The current model is designed and evaluated
+                    primarily for semiconductor inspection imagery.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="faq-item">
+
+            <button class="faq-question">
+
+                <span>
+                    Can I export the restored image?
+                </span>
+
+                <span class="plus">+</span>
+
+            </button>
+
+            <div class="faq-answer">
+
+                <p>
+                    Yes. Once inference completes, the restored image
+                    can be exported directly from the browser.
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =========================================================
+     FEEDBACK
+========================================================= -->
+
+<section
+    id="feedback"
+    class="section feedback-section"
+>
+
+    <div class="section-title">
+        <span>Help Us Improve SIV-AI</span>
+    </div>
+
+
+    <div class="feedback-container">
+
+        <form id="feedbackForm">
+
+            <label>
+                FEEDBACK_TYPE
+            </label>
+
+            <select id="feedbackType">
+
+                <option>
+                    General
+                </option>
+
+                <option>
+                    Model Quality
+                </option>
+
+                <option>
+                    UI / UX
+                </option>
+
+                <option>
+                    Bug Report
+                </option>
+
+                <option>
+                    Feature Request
+                </option>
+
+            </select>
+
+
+            <div class="form-row">
+
+                <div class="form-group">
+
+                    <label>
+                        NAME
+                    </label>
+
+                    <input
+                        id="feedbackName"
+                        type="text"
+                        placeholder="John Doe"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        EMAIL
+                    </label>
+
+                    <input
+                        id="feedbackEmail"
+                        type="email"
+                        placeholder="john@example.com"
+                    >
+
+                </div>
+
+            </div>
+
+
+            <label>
+                RESTORATION_RATING
+            </label>
+
+            <div class="rating">
+
+                <button type="button" data-rating="1">1</button>
+                <button type="button" data-rating="2">2</button>
+                <button type="button" data-rating="3">3</button>
+                <button type="button" data-rating="4">4</button>
+                <button type="button" data-rating="5">5</button>
+
+            </div>
+
+
+            <label>
+                COMMENTS
+            </label>
+
+            <textarea
+                id="feedbackComments"
+                placeholder="Tell us about your experience..."
+            ></textarea>
+
+
+            <button
+                type="submit"
+                class="feedback-button"
+            >
+                SUBMIT FEEDBACK
+            </button>
+
+        </form>
+
+    </div>
+
+</section>
+
+
+<!-- =========================================================
+     CONTACT
+========================================================= -->
+
+<section
+    id="contact"
+    class="section contact-section"
+>
+
+    <div class="section-title">
+        <span>Contact Us</span>
+    </div>
+
+
+    <div class="contact-card">
+
+        <div class="contact-avatar">
+            LS
+        </div>
+
+        <div class="contact-info">
+
+            <h3>
+                Logesh S
+            </h3>
+
+            <span class="role">
+                LEAD AI RESEARCHER
+            </span>
+
+            <p>
+                logeshk2008@gmail.com
+            </p>
+
+            <a
+                href="mailto:logeshk2008@gmail.com"
+                class="email-button"
+            >
+                Email Logesh →
+            </a>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =========================================================
+     FOOTER
+========================================================= -->
+
+<footer>
+
+    <div class="footer-inner">
+
+        <div class="footer-logo">
+            SIV-AI
+        </div>
+
+        <p>
+            Semiconductor Inspection & Verification AI
+        </p>
+
+        <span>
+            © 2026 SIV-AI. All rights reserved.
+        </span>
+
+    </div>
+
+</footer>
+
+
+<script src="/static/script.js"></script>
+
+</body>
+</html>
